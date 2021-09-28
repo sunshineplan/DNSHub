@@ -14,10 +14,22 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-func process(w dns.ResponseWriter, r *dns.Msg, s string) (err error) {
+func formatDNSAddr(a string) string {
+	host, port, err := net.SplitHostPort(a)
+	if err != nil {
+		host = a
+	}
+	trim := strings.TrimSpace
+	if trim(port) == "" {
+		port = "53"
+	}
+	return net.JoinHostPort(trim(host), trim(port))
+}
+
+func process(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
 	resp, ok := getCache(r)
 	if !ok {
-		resp, err = dns.Exchange(r, s)
+		resp, err = dns.Exchange(r, formatDNSAddr(addr))
 		if err != nil {
 			return
 		}
@@ -27,14 +39,14 @@ func process(w dns.ResponseWriter, r *dns.Msg, s string) (err error) {
 	return w.WriteMsg(resp)
 }
 
-func processProxy(w dns.ResponseWriter, r *dns.Msg, p, s string) error {
+func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 	resp, ok := getCache(r)
 	if !ok {
 		d, err := proxy.SOCKS5("tcp", p, nil, nil)
 		if err != nil {
 			return err
 		}
-		conn, err := d.Dial("tcp", s)
+		conn, err := d.Dial("tcp", formatDNSAddr(addr))
 		if err != nil {
 			return err
 		}
@@ -122,6 +134,7 @@ func run() {
 }
 
 func test() error {
+	*fallback = true
 	addr := getTestAddress()
 	if addr == "" {
 		return errors.New("failed to get test address")
@@ -129,12 +142,15 @@ func test() error {
 
 	ec := make(chan error)
 	rc := make(chan *dns.Msg)
+	done := make(chan bool)
+
 	registerHandler()
 	go func() { ec <- dns.ListenAndServe(addr, "udp", dns.DefaultServeMux) }()
-	go func() {
+
+	var query = func(q string) error {
 		var r *dns.Msg
-		m := new(dns.Msg).SetQuestion("www.google.com.", dns.TypeA)
-		if err := utils.Retry(
+		m := new(dns.Msg).SetQuestion(q, dns.TypeA)
+		return utils.Retry(
 			func() (err error) {
 				r, err = dns.Exchange(m, addr)
 				if err != nil {
@@ -143,22 +159,31 @@ func test() error {
 				rc <- r
 				return
 			}, 5, 1,
-		); err != nil {
+		)
+	}
+	go func() {
+		if err := query("www.google.com."); err != nil {
 			ec <- err
 		}
+		if err := query("golang.org."); err != nil {
+			ec <- err
+		}
+		done <- true
 	}()
 
-	select {
-	case err := <-ec:
-		return err
-	case msg := <-rc:
-		if len(msg.Answer) == 0 {
-			return errors.New("no result")
+	for {
+		select {
+		case err := <-ec:
+			return err
+		case msg := <-rc:
+			if len(msg.Answer) == 0 {
+				return errors.New("no result")
+			}
+			log.Print(msg.Answer)
+		case <-done:
+			return nil
 		}
-		log.Print(msg.Answer)
 	}
-
-	return nil
 }
 
 func getTestAddress() string {

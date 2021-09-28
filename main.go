@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	localDNS    = flag.String("local", ":53", "local dns")
-	remoteDNS   = flag.String("remote", "8.8.8.8:53", "remote dns")
+	localDNS    = flag.String("local", "", "local dns")
+	remoteDNS   = flag.String("remote", "8.8.8.8", "remote dns")
 	list        = flag.String("list", "", "remote list file")
 	socks5Proxy = flag.String("socks5", ":8888", "socks5 proxy")
 	fallback    = flag.Bool("fallback", false, "Allow fallback")

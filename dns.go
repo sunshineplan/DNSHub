@@ -1,9 +1,10 @@
 package main
 
 import (
-	"errors"
+	"fmt"
 	"log"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -127,7 +128,7 @@ func registerHandler() {
 }
 
 func run() {
-	parseHosts()
+	parseHosts(*hosts)
 	registerHandler()
 	if err := dns.ListenAndServe(":53", "udp", dns.DefaultServeMux); err != nil {
 		log.Fatal(err)
@@ -138,18 +139,26 @@ func test() error {
 	*fallback = true
 	addr := getTestAddress()
 	if addr == "" {
-		return errors.New("failed to get test address")
+		return fmt.Errorf("failed to get test address")
 	}
+
+	testHosts, err := os.CreateTemp("", "")
+	if err != nil {
+		return err
+	}
+	testHosts.WriteString("  1.2.3.4\t \tdns.test.com\t \t\n")
+	testHosts.Close()
+	defer os.Remove(testHosts.Name())
 
 	ec := make(chan error)
 	rc := make(chan *dns.Msg)
 	done := make(chan bool)
 
-	parseHosts()
+	parseHosts(testHosts.Name())
 	registerHandler()
 	go func() { ec <- dns.ListenAndServe(addr, "udp", dns.DefaultServeMux) }()
 
-	var query = func(q string) error {
+	var query = func(q, expected string) error {
 		var r *dns.Msg
 		m := new(dns.Msg).SetQuestion(q, dns.TypeA)
 		return utils.Retry(
@@ -158,16 +167,21 @@ func test() error {
 				if err != nil {
 					return
 				}
+				if expected != "" {
+					if result := fmt.Sprint(r.Answer); !strings.Contains(result, expected) {
+						return fmt.Errorf("not expected result: %v", result)
+					}
+				}
 				rc <- r
 				return
 			}, 5, 1,
 		)
 	}
 	go func() {
-		if err := query("www.google.com."); err != nil {
+		if err := query("www.google.com.", ""); err != nil {
 			ec <- err
 		}
-		if err := query("golang.org."); err != nil {
+		if err := query("dns.test.com.", "1.2.3.4"); err != nil {
 			ec <- err
 		}
 		done <- true
@@ -179,7 +193,7 @@ func test() error {
 			return err
 		case msg := <-rc:
 			if len(msg.Answer) == 0 {
-				return errors.New("no result")
+				return fmt.Errorf("no result")
 			}
 			log.Print(msg.Answer)
 		case <-done:

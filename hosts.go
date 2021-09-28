@@ -10,13 +10,13 @@ import (
 	"github.com/sunshineplan/utils/txt"
 )
 
-func parseHosts() {
-	*hosts = trim(*hosts)
-	if *hosts == "" {
+func parseHosts(file string) {
+	file = trim(file)
+	if file == "" {
 		return
 	}
 
-	rows, err := txt.ReadFile(*hosts)
+	rows, err := txt.ReadFile(file)
 	if err != nil {
 		log.Print(err)
 		return

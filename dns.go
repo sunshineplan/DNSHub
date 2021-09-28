@@ -19,7 +19,6 @@ func formatDNSAddr(a string) string {
 	if err != nil {
 		host = a
 	}
-	trim := strings.TrimSpace
 	if trim(port) == "" {
 		port = "53"
 	}
@@ -93,6 +92,7 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 }
 
 func registerHandler() {
+	*list = trim(*list)
 	if *list == "" {
 		*list = filepath.Join(filepath.Dir(self), "remotelist.txt")
 	}
@@ -127,6 +127,7 @@ func registerHandler() {
 }
 
 func run() {
+	parseHosts()
 	registerHandler()
 	if err := dns.ListenAndServe(":53", "udp", dns.DefaultServeMux); err != nil {
 		log.Fatal(err)
@@ -144,6 +145,7 @@ func test() error {
 	rc := make(chan *dns.Msg)
 	done := make(chan bool)
 
+	parseHosts()
 	registerHandler()
 	go func() { ec <- dns.ListenAndServe(addr, "udp", dns.DefaultServeMux) }()
 

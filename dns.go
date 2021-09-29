@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,7 +43,14 @@ func process(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
 func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 	resp, ok := getCache(r)
 	if !ok {
-		d, err := proxy.SOCKS5("tcp", p, nil, nil)
+		u, err := url.Parse(p)
+		if err != nil || u.Host == "" {
+			u, err = url.Parse("http://" + p)
+			if err != nil {
+				return err
+			}
+		}
+		d, err := proxy.FromURL(u, nil)
 		if err != nil {
 			return err
 		}
@@ -74,7 +82,7 @@ func local(w dns.ResponseWriter, r *dns.Msg) error {
 }
 
 func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
-	if proxy := *socks5Proxy; proxy != "" {
+	if proxy := *dnsProxy; proxy != "" {
 		_, err = executor.ExecuteConcurrentArg(
 			strings.Split(*remoteDNS, ","),
 			func(i interface{}) (_ interface{}, err error) { err = processProxy(w, r, proxy, i.(string)); return },

@@ -14,11 +14,11 @@ import (
 )
 
 var (
-	localDNS  = flag.String("local", "", "local dns")
-	remoteDNS = flag.String("remote", "8.8.8.8", "remote dns")
-	list      = flag.String("list", "", "remote list file")
-	hosts     = flag.String("hosts", "", "hosts file")
-	dnsProxy  = flag.String("proxy", "", "remote dns proxy")
+	localDNS  = flag.String("local", "", "Local DNS")
+	remoteDNS = flag.String("remote", "8.8.8.8", "Remote DNS")
+	list      = flag.String("list", "", "Remote list `file`")
+	hosts     = flag.String("hosts", "", "Hosts `file`")
+	dnsProxy  = flag.String("proxy", "", "Remote DNS proxy")
 	fallback  = flag.Bool("fallback", false, "Allow fallback")
 )
 
@@ -34,8 +34,6 @@ var svc = service.Service{
 	},
 }
 
-var trim = strings.TrimSpace
-
 func init() {
 	var err error
 	self, err = os.Executable()
@@ -44,7 +42,27 @@ func init() {
 	}
 }
 
+func usage() {
+	fmt.Fprintf(flag.CommandLine.Output(), `Usage of %s:
+  -local string
+    	Local DNS
+  -remote string
+    	Remote DNS (default "8.8.8.8")
+  -list file
+    	Remote list file
+  -hosts file
+    	Hosts file
+  -proxy string
+    	Remote DNS proxy
+  -fallback
+    	Allow fallback
+  -update string
+    	Update URL
+%s`, os.Args[0], service.Usage)
+}
+
 func main() {
+	flag.Usage = usage
 	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
 	iniflags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
 	iniflags.SetAllowMissingConfigFile(true)
@@ -70,8 +88,8 @@ func main() {
 			err = svc.Test()
 		case "install":
 			err = svc.Install()
-		case "remove":
-			err = svc.Remove()
+		case "uninstall", "remove":
+			err = svc.Uninstall()
 		case "start":
 			err = svc.Start()
 		case "stop":

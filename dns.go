@@ -18,6 +18,8 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+var trim = strings.TrimSpace
+
 func formatDNSAddr(a string) string {
 	host, port, err := net.SplitHostPort(a)
 	if err != nil {

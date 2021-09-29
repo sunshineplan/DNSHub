@@ -119,7 +119,7 @@ func registerHandler() {
 			)
 		})
 		for _, i := range remoteList {
-			dns.DefaultServeMux.HandleFunc(i, func(w dns.ResponseWriter, r *dns.Msg) {
+			dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
 				executor.ExecuteSerial(
 					nil,
 					func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
@@ -130,7 +130,7 @@ func registerHandler() {
 	} else {
 		dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) { local(w, r) })
 		for _, i := range remoteList {
-			dns.DefaultServeMux.HandleFunc(i, func(w dns.ResponseWriter, r *dns.Msg) { remote(w, r) })
+			dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) { remote(w, r) })
 		}
 	}
 }

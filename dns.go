@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net"
 	"net/url"
@@ -25,6 +27,13 @@ func formatDNSAddr(a string) string {
 		port = "53"
 	}
 	return net.JoinHostPort(trim(host), trim(port))
+}
+
+func split(s string) []string {
+	if s == "" {
+		return nil
+	}
+	return strings.Split(s, ",")
 }
 
 func process(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
@@ -71,8 +80,12 @@ func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 }
 
 func local(w dns.ResponseWriter, r *dns.Msg) error {
+	if *localDNS == "" {
+		return errors.New("no local dns provided")
+	}
+
 	if _, err := executor.ExecuteConcurrentArg(
-		strings.Split(*localDNS, ","),
+		split(*localDNS),
 		func(i interface{}) (_ interface{}, err error) { err = process(w, r, i.(string)); return },
 	); err != nil {
 		log.Print(err)
@@ -82,14 +95,18 @@ func local(w dns.ResponseWriter, r *dns.Msg) error {
 }
 
 func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
+	if *remoteDNS == "" {
+		return errors.New("no remote dns provided")
+	}
+
 	if proxy := *dnsProxy; proxy != "" {
 		_, err = executor.ExecuteConcurrentArg(
-			strings.Split(*remoteDNS, ","),
+			split(*remoteDNS),
 			func(i interface{}) (_ interface{}, err error) { err = processProxy(w, r, proxy, i.(string)); return },
 		)
 	} else {
 		_, err = executor.ExecuteConcurrentArg(
-			strings.Split(*remoteDNS, ","),
+			split(*remoteDNS),
 			func(i interface{}) (_ interface{}, err error) { err = process(w, r, i.(string)); return },
 		)
 	}
@@ -103,11 +120,15 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 func registerHandler() {
 	*list = trim(*list)
 	if *list == "" {
-		*list = filepath.Join(filepath.Dir(self), "remotelist.txt")
+		*list = filepath.Join(filepath.Dir(self), "remote.list")
 	}
 	remoteList, err := txt.ReadFile(*list)
 	if err != nil {
-		log.Print(err)
+		if errors.Is(err, fs.ErrNotExist) {
+			log.Print("no remote list file found")
+		} else {
+			log.Print(err)
+		}
 	}
 
 	if *fallback {
@@ -118,24 +139,38 @@ func registerHandler() {
 				func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
 			)
 		})
-		for _, i := range remoteList {
-			dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
-				executor.ExecuteSerial(
-					nil,
-					func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
-					func(_ interface{}) (_ interface{}, err error) { err = local(w, r); return },
-				)
-			})
+		if *remoteDNS != "" {
+			for _, i := range remoteList {
+				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
+					executor.ExecuteSerial(
+						nil,
+						func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
+						func(_ interface{}) (_ interface{}, err error) { err = local(w, r); return },
+					)
+				})
+			}
 		}
 	} else {
 		dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) { local(w, r) })
-		for _, i := range remoteList {
-			dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) { remote(w, r) })
+		if *remoteDNS != "" {
+			for _, i := range remoteList {
+				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) { remote(w, r) })
+			}
 		}
 	}
 }
 
 func run() {
+	*localDNS = trim(*localDNS)
+	*remoteDNS = trim(*remoteDNS)
+
+	if *localDNS+*remoteDNS == "" {
+		log.Fatal("no dns provided")
+	} else if *localDNS == "" || *remoteDNS == "" {
+		log.Print("Only local dns or remote dns was provided, fallback will be enabled.")
+		*fallback = true
+	}
+
 	parseHosts(*hosts)
 	registerHandler()
 	if err := dns.ListenAndServe(":53", "udp", dns.DefaultServeMux); err != nil {
@@ -147,7 +182,7 @@ func test() error {
 	*fallback = true
 	addr := getTestAddress()
 	if addr == "" {
-		return fmt.Errorf("failed to get test address")
+		return errors.New("failed to get test address")
 	}
 
 	testHosts, err := os.CreateTemp("", "")
@@ -201,7 +236,7 @@ func test() error {
 			return err
 		case msg := <-rc:
 			if len(msg.Answer) == 0 {
-				return fmt.Errorf("no result")
+				return errors.New("no result")
 			}
 			log.Print(msg.Answer)
 		case <-done:

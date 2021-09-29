@@ -18,7 +18,7 @@ var (
 	remoteDNS = flag.String("remote", "8.8.8.8", "remote dns")
 	list      = flag.String("list", "", "remote list file")
 	hosts     = flag.String("hosts", "", "hosts file")
-	dnsProxy  = flag.String("proxy", ":1080", "remote dns proxy")
+	dnsProxy  = flag.String("proxy", "", "remote dns proxy")
 	fallback  = flag.Bool("fallback", false, "Allow fallback")
 )
 

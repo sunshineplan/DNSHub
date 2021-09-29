@@ -44,19 +44,20 @@ func init() {
 
 func usage() {
 	fmt.Fprintf(flag.CommandLine.Output(), `Usage of %s:
-  -local string
-    	Local DNS
-  -remote string
-    	Remote DNS (default "8.8.8.8")
-  -list file
+  -local <string>
+    	List of local DNS servers, separated with commas. Port numbers may also optionally be
+		given as :<port-number> after each address
+  -remote <string>
+    	List of remote DNS servers which must support tcp (default "8.8.8.8")
+  -list <file>
     	Remote list file
-  -hosts file
+  -hosts <file>
     	Hosts file
-  -proxy string
-    	Remote DNS proxy
+  -proxy <string>
+    	Remote DNS proxy, support http,https,socks5,socks5h proxy
   -fallback
-    	Allow fallback
-  -update string
+    	Enable fallback
+  -update <url>
     	Update URL
 %s`, os.Args[0], service.Usage)
 }

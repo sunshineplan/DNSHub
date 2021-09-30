@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
@@ -18,20 +19,51 @@ import (
 	"golang.org/x/net/proxy"
 )
 
+var serverAddr string
+var localDNSList, remoteDNSList []string
+
 var trim = strings.TrimSpace
 
 func formatDNSAddr(a string) string {
-	host, port, err := net.SplitHostPort(a)
+	hst, prt, err := net.SplitHostPort(a)
 	if err != nil {
-		host = a
+		hst = a
 	}
-	if trim(port) == "" {
-		port = "53"
+	if trim(prt) == "" {
+		prt = "53"
 	}
-	return net.JoinHostPort(trim(host), trim(port))
+
+	if ok, err := isLocal(trim(hst)); err != nil {
+		log.Print(err)
+		return ""
+	} else if ok && prt == strconv.Itoa(*port) {
+		log.Print("local dns or remote dns can not same as server dns address")
+		return ""
+	}
+
+	return net.JoinHostPort(trim(hst), trim(prt))
 }
 
-func split(s string) []string {
+func isLocal(host string) (bool, error) {
+	ip := net.ParseIP(host)
+	if ip == nil {
+		ips, err := net.LookupIP(host)
+		if err != nil {
+			return false, err
+		} else if len(ips) == 0 {
+			return false, fmt.Errorf("lookup %s: no such host", host)
+		}
+		ip = ips[0]
+	}
+
+	if ip.Equal(net.IPv4(127, 0, 0, 1)) || ip.Equal(net.ParseIP("::1")) {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func splitComma(s string) []string {
 	if s == "" {
 		return nil
 	}
@@ -41,7 +73,7 @@ func split(s string) []string {
 func process(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
 	resp, ok := getCache(r)
 	if !ok {
-		resp, err = dns.Exchange(r, formatDNSAddr(addr))
+		resp, err = dns.Exchange(r, addr)
 		if err != nil {
 			return
 		}
@@ -65,7 +97,7 @@ func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 		if err != nil {
 			return err
 		}
-		conn, err := d.Dial("tcp", formatDNSAddr(addr))
+		conn, err := d.Dial("tcp", addr)
 		if err != nil {
 			return err
 		}
@@ -82,12 +114,12 @@ func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 }
 
 func local(w dns.ResponseWriter, r *dns.Msg) error {
-	if *localDNS == "" {
+	if len(localDNSList) == 0 {
 		return errors.New("no local dns provided")
 	}
 
 	if _, err := executor.ExecuteConcurrentArg(
-		split(*localDNS),
+		localDNSList,
 		func(i interface{}) (_ interface{}, err error) { err = process(w, r, i.(string)); return },
 	); err != nil {
 		log.Print(err)
@@ -97,18 +129,18 @@ func local(w dns.ResponseWriter, r *dns.Msg) error {
 }
 
 func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
-	if *remoteDNS == "" {
+	if len(remoteDNSList) == 0 {
 		return errors.New("no remote dns provided")
 	}
 
 	if proxy := *dnsProxy; proxy != "" {
 		_, err = executor.ExecuteConcurrentArg(
-			split(*remoteDNS),
+			remoteDNSList,
 			func(i interface{}) (_ interface{}, err error) { err = processProxy(w, r, proxy, i.(string)); return },
 		)
 	} else {
 		_, err = executor.ExecuteConcurrentArg(
-			split(*remoteDNS),
+			remoteDNSList,
 			func(i interface{}) (_ interface{}, err error) { err = process(w, r, i.(string)); return },
 		)
 	}
@@ -117,6 +149,30 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 	}
 
 	return
+}
+
+func loadDNSList() {
+	*localDNS = trim(*localDNS)
+	*remoteDNS = trim(*remoteDNS)
+
+	if *localDNS+*remoteDNS == "" {
+		log.Fatal("no dns provided")
+	} else if *localDNS == "" || *remoteDNS == "" {
+		log.Print("Only local dns or remote dns was provided, fallback will be enabled.")
+		*fallback = true
+	}
+
+	for _, i := range splitComma(*localDNS) {
+		if addr := formatDNSAddr(i); addr != "" {
+			localDNSList = append(localDNSList, addr)
+		}
+	}
+
+	for _, i := range splitComma(*remoteDNS) {
+		if addr := formatDNSAddr(i); addr != "" {
+			remoteDNSList = append(remoteDNSList, addr)
+		}
+	}
 }
 
 func registerHandler() {
@@ -141,7 +197,7 @@ func registerHandler() {
 				func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
 			)
 		})
-		if *remoteDNS != "" {
+		if len(remoteDNSList) != 0 {
 			for _, i := range remoteList {
 				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
 					executor.ExecuteSerial(
@@ -163,26 +219,18 @@ func registerHandler() {
 }
 
 func run() {
-	*localDNS = trim(*localDNS)
-	*remoteDNS = trim(*remoteDNS)
-
-	if *localDNS+*remoteDNS == "" {
-		log.Fatal("no dns provided")
-	} else if *localDNS == "" || *remoteDNS == "" {
-		log.Print("Only local dns or remote dns was provided, fallback will be enabled.")
-		*fallback = true
-	}
-
-	addr, err := testDNSPort(*port)
+	var err error
+	serverAddr, err = testDNSPort(*port)
 	if err != nil {
 		log.Fatalf("failed to test dns port: %v", err)
 	}
+	loadDNSList()
 	parseHosts(*hosts)
 	registerHandler()
 
-	log.Printf("listen on: %s", addr)
-	if err := dns.ListenAndServe(addr, "udp", dns.DefaultServeMux); err != nil {
-		log.Fatalf("failed to start listen: %v", err)
+	log.Printf("listen on: %s", serverAddr)
+	if err := dns.ListenAndServe(serverAddr, "udp", dns.DefaultServeMux); err != nil {
+		log.Fatalf("failed to start server: %v", err)
 	}
 }
 
@@ -205,6 +253,7 @@ func test() error {
 	rc := make(chan *dns.Msg)
 	done := make(chan bool)
 
+	loadDNSList()
 	parseHosts(testHosts.Name())
 	registerHandler()
 	go func() { ec <- dns.ListenAndServe(addr, "udp", dns.DefaultServeMux) }()
@@ -248,6 +297,7 @@ func test() error {
 			}
 			log.Print(msg.Answer)
 		case <-done:
+			log.Print("test passed")
 			return nil
 		}
 	}

@@ -173,18 +173,24 @@ func run() {
 		*fallback = true
 	}
 
+	addr, err := testDNSPort(*port)
+	if err != nil {
+		log.Fatalf("failed to test dns port: %v", err)
+	}
 	parseHosts(*hosts)
 	registerHandler()
-	if err := dns.ListenAndServe(":53", "udp", dns.DefaultServeMux); err != nil {
-		log.Fatal(err)
+
+	log.Printf("listen on: %s", addr)
+	if err := dns.ListenAndServe(addr, "udp", dns.DefaultServeMux); err != nil {
+		log.Fatalf("failed to start listen: %v", err)
 	}
 }
 
 func test() error {
 	*fallback = true
-	addr := getTestAddress()
-	if addr == "" {
-		return errors.New("failed to get test address")
+	addr, err := testDNSPort(0)
+	if err != nil {
+		return fmt.Errorf("failed to get test address: %v", err)
 	}
 
 	testHosts, err := os.CreateTemp("", "")
@@ -247,10 +253,11 @@ func test() error {
 	}
 }
 
-func getTestAddress() string {
-	if conn, err := net.ListenUDP("udp", nil); err == nil {
-		defer conn.Close()
-		return conn.LocalAddr().String()
+func testDNSPort(port int) (string, error) {
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{Port: port})
+	if err != nil {
+		return "", err
 	}
-	return ""
+	conn.Close()
+	return conn.LocalAddr().String(), nil
 }

@@ -19,6 +19,7 @@ var (
 	list      = flag.String("list", "", "Remote list `file`")
 	hosts     = flag.String("hosts", "", "Hosts `file`")
 	dnsProxy  = flag.String("proxy", "", "Remote DNS proxy")
+	port      = flag.Int("port", 53, "DNS port")
 	fallback  = flag.Bool("fallback", false, "Allow fallback")
 )
 
@@ -55,6 +56,8 @@ func usage() {
     	Hosts file
   -proxy <string>
     	Remote DNS proxy, support http,https,socks5,socks5h proxy
+  -port <port>
+    	DNS port (default 53)
   -fallback
     	Enable fallback
   -update <url>

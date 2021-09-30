@@ -58,6 +58,11 @@ jobs:
               ref: 'tags/v1.0'
             })
 
+      - name: Pack
+        run: |
+          tar cvzf release-linux.tar.gz proxydns config.ini.default
+          zip -9vr release-windows.zip proxydns.exe config.ini.default
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         env:
@@ -66,4 +71,4 @@ jobs:
           tag_name: v1.0
           name: ${{ steps.build.outputs.date }}
           body: ${{ steps.build.outputs.date }}
-          files: proxydns*
+          files: release*

@@ -70,27 +70,15 @@ func splitComma(s string) []string {
 	return strings.Split(s, ",")
 }
 
-func process(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
-	resp, ok := getCache(r)
-	if !ok {
-		resp, err = dns.Exchange(r, addr)
-		if err != nil {
-			return
-		}
-		setCache(r.Question, resp)
-	}
-
-	return w.WriteMsg(resp)
-}
-
-func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
+func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 	resp, ok := getCache(r)
 	if !ok {
 		resp = r.Copy()
+		q := resp.Question[0].Name
 		qType := resp.Question[0].Qtype
 		switch qType {
 		case dns.TypeA, dns.TypeAAAA:
-			ips, err := net.LookupIP(resp.Question[0].Name)
+			ips, err := net.LookupIP(q)
 			if err != nil {
 				return err
 			}
@@ -100,11 +88,11 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				switch qType {
 				case dns.TypeA:
 					if ip.DefaultMask() != nil {
-						s = fmt.Sprintf("%s A %s", resp.Question[0].Name, ip)
+						s = fmt.Sprintf("%s A %s", q, ip)
 					}
 				case dns.TypeAAAA:
 					if ip.DefaultMask() == nil {
-						s = fmt.Sprintf("%s AAAA %s", resp.Question[0].Name, ip)
+						s = fmt.Sprintf("%s AAAA %s", q, ip)
 					}
 				}
 				rr, err := dns.NewRR(s)
@@ -117,11 +105,11 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				}
 			}
 		case dns.TypeCNAME:
-			cname, err := net.LookupCNAME(resp.Question[0].Name)
+			cname, err := net.LookupCNAME(q)
 			if err != nil {
 				return err
 			}
-			s := fmt.Sprintf("%s CNAME %s", resp.Question[0].Name, cname)
+			s := fmt.Sprintf("%s CNAME %s", q, cname)
 			rr, err := dns.NewRR(s)
 			if err != nil {
 				log.Println("failed to create record:", s)
@@ -129,12 +117,12 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 			}
 			resp.Answer = append(resp.Answer, rr)
 		case dns.TypeTXT:
-			txt, err := net.LookupTXT(resp.Question[0].Name)
+			txt, err := net.LookupTXT(q)
 			if err != nil {
 				return err
 			}
 			for _, i := range txt {
-				s := fmt.Sprintf("%s TXT %q", resp.Question[0].Name, i)
+				s := fmt.Sprintf("%s TXT %q", q, i)
 				rr, err := dns.NewRR(s)
 				if err != nil {
 					log.Println("failed to create record:", s)
@@ -143,12 +131,12 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				resp.Answer = append(resp.Answer, rr)
 			}
 		case dns.TypePTR:
-			addr, err := net.LookupAddr(resp.Question[0].Name)
+			addr, err := net.LookupAddr(q)
 			if err != nil {
 				return err
 			}
 			for _, i := range addr {
-				reverse, _ := dns.ReverseAddr(resp.Question[0].Name)
+				reverse, _ := dns.ReverseAddr(q)
 				s := fmt.Sprintf("%s PTR %s", reverse, i)
 				rr, err := dns.NewRR(s)
 				if err != nil {
@@ -158,12 +146,12 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				resp.Answer = append(resp.Answer, rr)
 			}
 		case dns.TypeMX:
-			mx, err := net.LookupMX(resp.Question[0].Name)
+			mx, err := net.LookupMX(q)
 			if err != nil {
 				return err
 			}
 			for _, i := range mx {
-				s := fmt.Sprintf("%s MX %d %s", resp.Question[0].Name, i.Pref, i.Host)
+				s := fmt.Sprintf("%s MX %d %s", q, i.Pref, i.Host)
 				rr, err := dns.NewRR(s)
 				if err != nil {
 					log.Println("failed to create record:", s)
@@ -172,12 +160,12 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				resp.Answer = append(resp.Answer, rr)
 			}
 		case dns.TypeNS:
-			ns, err := net.LookupNS(resp.Question[0].Name)
+			ns, err := net.LookupNS(q)
 			if err != nil {
 				return err
 			}
 			for _, i := range ns {
-				s := fmt.Sprintf("%s NS %s", resp.Question[0].Name, i.Host)
+				s := fmt.Sprintf("%s NS %s", q, i.Host)
 				rr, err := dns.NewRR(s)
 				if err != nil {
 					log.Println("failed to create record:", s)
@@ -185,13 +173,38 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				}
 				resp.Answer = append(resp.Answer, rr)
 			}
-		//case dns.TypeSRV:
-		//	TODO
+		case dns.TypeSRV:
+			_, srv, err := net.LookupSRV("", "", q)
+			if err != nil {
+				return err
+			}
+			for _, i := range srv {
+				s := fmt.Sprintf("%s SRV %d %d %d %s", q, i.Priority, i.Weight, i.Port, i.Target)
+				rr, err := dns.NewRR(s)
+				if err != nil {
+					log.Println("failed to create record:", s)
+					continue
+				}
+				resp.Answer = append(resp.Answer, rr)
+			}
 		default:
 			return fmt.Errorf("not supported query type for local lookup: %d", qType)
 		}
 
 		setCache(resp.Question, resp)
+	}
+
+	return w.WriteMsg(resp)
+}
+
+func processLocal(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
+	resp, ok := getCache(r)
+	if !ok {
+		resp, err = dns.Exchange(r, addr)
+		if err != nil {
+			return
+		}
+		setCache(r.Question, resp)
 	}
 
 	return w.WriteMsg(resp)
@@ -229,12 +242,12 @@ func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 
 func local(w dns.ResponseWriter, r *dns.Msg) error {
 	if len(localDNSList) == 0 {
-		return processLocal(w, r)
+		return processDefault(w, r)
 	} else {
 		if _, err := executor.ExecuteConcurrentArg(
 			localDNSList,
-			func(i interface{}) (_ interface{}, err error) { err = process(w, r, i.(string)); return },
-			func(_ interface{}) (_ interface{}, err error) { err = processLocal(w, r); return },
+			func(i interface{}) (_ interface{}, err error) { err = processLocal(w, r, i.(string)); return },
+			func(_ interface{}) (_ interface{}, err error) { err = processDefault(w, r); return },
 		); err != nil {
 			log.Print(err)
 			return err
@@ -257,7 +270,7 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 	} else {
 		_, err = executor.ExecuteConcurrentArg(
 			remoteDNSList,
-			func(i interface{}) (_ interface{}, err error) { err = process(w, r, i.(string)); return },
+			func(i interface{}) (_ interface{}, err error) { err = processLocal(w, r, i.(string)); return },
 		)
 	}
 	if err != nil {

@@ -63,7 +63,7 @@ func importHosts(s map[string][]net.IP, t uint16) {
 		m := new(dns.Msg)
 		m.SetQuestion(dns.Fqdn(k), t)
 		for _, ip := range v {
-			s := fmt.Sprintf("%s %s %s", k, qType, ip)
+			s := fmt.Sprintf("%s %s %s", dns.Fqdn(k), qType, ip)
 			rr, err := dns.NewRR(s)
 			if err != nil {
 				log.Println("failed to create record:", s)

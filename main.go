@@ -26,7 +26,7 @@ var (
 var self string
 
 var svc = service.Service{
-	Name:     "Proxy DNS",
+	Name:     "ProxyDNS",
 	Desc:     "Instance to serve Proxy DNS",
 	Exec:     run,
 	TestExec: test,

@@ -3,6 +3,7 @@
 Proxy DNS serves as a DNS proxy server.
 
 The domains in remote list will use remote DNS for query. Remote DNS must support tcp connection.
+If remote list file is changed, it will be reloaded automatically.
 If proxy is specified, it will connect remote DNS using this proxy.
 Currently, support http,https,socks5,socks5h proxy.
 

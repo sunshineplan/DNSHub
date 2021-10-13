@@ -3,12 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"log"
 	"net"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -303,19 +301,6 @@ func loadDNSList() {
 }
 
 func registerHandler() {
-	*list = trim(*list)
-	if *list == "" {
-		*list = filepath.Join(filepath.Dir(self), "remote.list")
-	}
-	remoteList, err := txt.ReadFile(*list)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			log.Print("no remote list file found")
-		} else {
-			log.Print(err)
-		}
-	}
-
 	if *fallback {
 		dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
 			executor.ExecuteSerial(
@@ -337,7 +322,38 @@ func registerHandler() {
 		}
 	} else {
 		dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) { local(w, r) })
-		if *remoteDNS != "" {
+		if len(remoteDNSList) != 0 {
+			for _, i := range remoteList {
+				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) { remote(w, r) })
+			}
+		}
+	}
+}
+
+func reRegisterHandler() {
+	for _, i := range remoteList {
+		dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
+	}
+	var err error
+	remoteList, err = txt.ReadFile(*list)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	if *fallback {
+		if len(remoteDNSList) != 0 {
+			for _, i := range remoteList {
+				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
+					executor.ExecuteSerial(
+						nil,
+						func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
+						func(_ interface{}) (_ interface{}, err error) { err = local(w, r); return },
+					)
+				})
+			}
+		}
+	} else {
+		if len(remoteDNSList) != 0 {
 			for _, i := range remoteList {
 				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) { remote(w, r) })
 			}
@@ -353,7 +369,7 @@ func run() {
 	}
 	loadDNSList()
 	parseHosts(*hosts)
-	registerHandler()
+	initRemoteList()
 
 	log.Printf("listen on: %s", serverAddr)
 	if err := dns.ListenAndServe(serverAddr, "udp", dns.DefaultServeMux); err != nil {
@@ -382,7 +398,7 @@ func test() error {
 
 	loadDNSList()
 	parseHosts(testHosts.Name())
-	registerHandler()
+	initRemoteList()
 	go func() { ec <- dns.ListenAndServe(addr, "udp", dns.DefaultServeMux) }()
 
 	var query = func(q, expected string) error {

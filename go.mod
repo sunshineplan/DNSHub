@@ -8,5 +8,5 @@ require (
 	github.com/sunshineplan/utils v0.0.10
 	github.com/sunshineplan/utils/httpproxy v1.0.1
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
-	golang.org/x/net v0.0.0-20210928044308-7d9f5e0b762b
+	golang.org/x/net v0.0.0-20211011170408-caeb26a5c8c0
 )

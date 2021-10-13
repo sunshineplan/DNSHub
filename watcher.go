@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,6 +15,12 @@ var mu sync.Mutex
 var remoteList []string
 
 func initRemoteList() {
+	if *list == "" {
+		if info, err := os.Stat(filepath.Join(filepath.Dir(self), "remote.list")); err == nil && !info.IsDir() {
+			*list = filepath.Join(filepath.Dir(self), "remote.list")
+		}
+	}
+
 	var err error
 	if *list != "" {
 		remoteList, err = txt.ReadFile(*list)
@@ -32,5 +40,7 @@ func initRemoteList() {
 				mu.Unlock()
 			}
 		}()
+	} else {
+		registerHandler()
 	}
 }

@@ -3,8 +3,8 @@ github.com/miekg/dns v1.1.43/go.mod h1:+evo5L0630/F6ca/Z9+GAqzhjGyn8/c+TBaOyfEl0
 github.com/sunshineplan/service v1.0.3 h1:eRisjis3IPX36yqbhFpLz+XCNyMj5835KTej70MsjRs=
 github.com/sunshineplan/service v1.0.3/go.mod h1:zQQ/Qgm5Od6y4y3P2V8Tof499lXrKNdHeYsVbXEZ738=
 github.com/sunshineplan/utils v0.0.20/go.mod h1:95AdNDzwlNcOSwYsCEFIzDOC/osnR3EnIeE5UmbN/SE=
-github.com/sunshineplan/utils v0.0.26 h1:v6B3lgiIf+Ht6Hm6o3AFIsrDXyWzyZFNHekDM8FuE7g=
-github.com/sunshineplan/utils v0.0.26/go.mod h1:95AdNDzwlNcOSwYsCEFIzDOC/osnR3EnIeE5UmbN/SE=
+github.com/sunshineplan/utils v0.0.27 h1:Lm43MY7IZNEMVlqLZ3pzdWBlmODUQX4m+9BnnbJUT9g=
+github.com/sunshineplan/utils v0.0.27/go.mod h1:95AdNDzwlNcOSwYsCEFIzDOC/osnR3EnIeE5UmbN/SE=
 github.com/sunshineplan/utils/httpproxy v1.0.4 h1:vbQQquf+rzqdOc+oq9VcDaW7bgtpwv6WADfyRotKrQA=
 github.com/sunshineplan/utils/httpproxy v1.0.4/go.mod h1:LQxsP0jaOqeROnwP2b9+d52jgYhGtWASehr8CsVRXtg=
 github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de h1:fkw+7JkxF3U1GzQoX9h69Wvtvxajo5Rbzy6+YMMzPIg=

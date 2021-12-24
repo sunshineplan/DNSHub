@@ -3,7 +3,7 @@ module proxydns
 go 1.16
 
 require (
-	github.com/miekg/dns v1.1.44
+	github.com/miekg/dns v1.1.45
 	github.com/sunshineplan/service v1.0.3
 	github.com/sunshineplan/utils v0.0.31
 	github.com/sunshineplan/utils/httpproxy v1.0.4

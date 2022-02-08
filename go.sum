@@ -1,5 +1,5 @@
-github.com/miekg/dns v1.1.45 h1:g5fRIhm9nx7g8osrAvgb16QJfmyMsyOCb+J7LSv+Qzk=
-github.com/miekg/dns v1.1.45/go.mod h1:e3IlAVfNqAllflbibAZEWOXOQ+Ynzk/dDozDxY7XnME=
+github.com/miekg/dns v1.1.46 h1:uzwpxRtSVxtcIZmz/4Uz6/Rn7G11DvsaslXoy5LxQio=
+github.com/miekg/dns v1.1.46/go.mod h1:e3IlAVfNqAllflbibAZEWOXOQ+Ynzk/dDozDxY7XnME=
 github.com/sunshineplan/service v1.0.3 h1:eRisjis3IPX36yqbhFpLz+XCNyMj5835KTej70MsjRs=
 github.com/sunshineplan/service v1.0.3/go.mod h1:zQQ/Qgm5Od6y4y3P2V8Tof499lXrKNdHeYsVbXEZ738=
 github.com/sunshineplan/utils v0.0.20/go.mod h1:95AdNDzwlNcOSwYsCEFIzDOC/osnR3EnIeE5UmbN/SE=

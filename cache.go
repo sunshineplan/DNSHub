@@ -20,7 +20,7 @@ func getCache(r *dns.Msg) (*dns.Msg, bool) {
 	return nil, false
 }
 
-func setCache(key interface{}, r *dns.Msg) {
+func setCache(key any, r *dns.Msg) {
 	if len(r.Answer) == 0 {
 		dnsCache.Set(fmt.Sprint(key), r, 300*time.Second, nil)
 		return

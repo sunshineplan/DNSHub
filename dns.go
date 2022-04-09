@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
-	"github.com/sunshineplan/utils"
 	"github.com/sunshineplan/utils/executor"
+	"github.com/sunshineplan/utils/retry"
 	"github.com/sunshineplan/utils/txt"
 	"golang.org/x/net/proxy"
 )
@@ -244,8 +244,8 @@ func local(w dns.ResponseWriter, r *dns.Msg) error {
 	} else {
 		if _, err := executor.ExecuteConcurrentArg(
 			localDNSList,
-			func(i interface{}) (_ interface{}, err error) { err = processLocal(w, r, i.(string)); return },
-			func(_ interface{}) (_ interface{}, err error) { err = processDefault(w, r); return },
+			func(addr string) (_ any, err error) { err = processLocal(w, r, addr); return },
+			func(_ string) (_ any, err error) { err = processDefault(w, r); return },
 		); err != nil {
 			log.Print(err)
 			return err
@@ -263,12 +263,12 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 	if proxy := *dnsProxy; proxy != "" {
 		_, err = executor.ExecuteConcurrentArg(
 			remoteDNSList,
-			func(i interface{}) (_ interface{}, err error) { err = processProxy(w, r, proxy, i.(string)); return },
+			func(addr string) (_ any, err error) { err = processProxy(w, r, proxy, addr); return },
 		)
 	} else {
 		_, err = executor.ExecuteConcurrentArg(
 			remoteDNSList,
-			func(i interface{}) (_ interface{}, err error) { err = processLocal(w, r, i.(string)); return },
+			func(addr string) (_ any, err error) { err = processLocal(w, r, addr); return },
 		)
 	}
 	if err != nil {
@@ -305,8 +305,8 @@ func registerHandler() {
 		dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
 			executor.ExecuteSerial(
 				nil,
-				func(_ interface{}) (_ interface{}, err error) { err = local(w, r); return },
-				func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
+				func(_ any) (_ any, err error) { err = local(w, r); return },
+				func(_ any) (_ any, err error) { err = remote(w, r); return },
 			)
 		})
 		if len(remoteDNSList) != 0 {
@@ -314,8 +314,8 @@ func registerHandler() {
 				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
 					executor.ExecuteSerial(
 						nil,
-						func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
-						func(_ interface{}) (_ interface{}, err error) { err = local(w, r); return },
+						func(_ any) (_ any, err error) { err = remote(w, r); return },
+						func(_ any) (_ any, err error) { err = local(w, r); return },
 					)
 				})
 			}
@@ -346,8 +346,8 @@ func reRegisterHandler() {
 				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
 					executor.ExecuteSerial(
 						nil,
-						func(_ interface{}) (_ interface{}, err error) { err = remote(w, r); return },
-						func(_ interface{}) (_ interface{}, err error) { err = local(w, r); return },
+						func(_ any) (_ any, err error) { err = remote(w, r); return },
+						func(_ any) (_ any, err error) { err = local(w, r); return },
 					)
 				})
 			}
@@ -394,7 +394,7 @@ func test() error {
 
 	ec := make(chan error)
 	rc := make(chan *dns.Msg)
-	done := make(chan bool)
+	done := make(chan struct{})
 
 	loadDNSList()
 	parseHosts(testHosts.Name())
@@ -404,7 +404,7 @@ func test() error {
 	var query = func(q, expected string) error {
 		var r *dns.Msg
 		m := new(dns.Msg).SetQuestion(q, dns.TypeA)
-		return utils.Retry(
+		return retry.Do(
 			func() (err error) {
 				r, err = dns.Exchange(m, addr)
 				if err != nil {
@@ -427,7 +427,7 @@ func test() error {
 		if err := query("dns.test.com.", "1.2.3.4"); err != nil {
 			ec <- err
 		}
-		done <- true
+		done <- struct{}{}
 	}()
 
 	for {

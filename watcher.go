@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"time"
 
+	"github.com/fsnotify/fsnotify"
+	"github.com/miekg/dns"
 	"github.com/sunshineplan/utils/txt"
-	"github.com/sunshineplan/utils/watcher"
 )
 
 var mu sync.Mutex
@@ -26,18 +26,39 @@ func initRemoteList() {
 		remoteList, err = txt.ReadFile(*list)
 		if err != nil {
 			log.Println("failed to load remote list file:", err)
+		} else {
+			registerHandler()
+		}
+
+		w, err := fsnotify.NewWatcher()
+		if err != nil {
+			log.Print(err)
 			return
 		}
-		registerHandler()
+		if err = w.Add(*list); err != nil {
+			log.Print(err)
+			return
+		}
 
-		w := watcher.New(*list, time.Second)
 		go func() {
 			for {
-				<-w.C
+				event, ok := <-w.Events
+				if !ok {
+					return
+				}
 
-				mu.Lock()
-				reRegisterHandler()
-				mu.Unlock()
+				switch event.Op.String() {
+				case "WRITE", "CREATE":
+					mu.Lock()
+					reRegisterHandler()
+					mu.Unlock()
+				case "REMOVE", "RENAME":
+					mu.Lock()
+					for _, i := range remoteList {
+						dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
+					}
+					mu.Unlock()
+				}
 			}
 		}()
 	} else {

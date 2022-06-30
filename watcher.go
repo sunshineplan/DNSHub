@@ -57,6 +57,7 @@ func initRemoteList() {
 					for _, i := range remoteList {
 						dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
 					}
+					remoteList = nil
 					mu.Unlock()
 				}
 			}

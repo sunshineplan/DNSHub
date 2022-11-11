@@ -1,6 +1,6 @@
 module proxydns
 
-go 1.18
+go 1.19
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0
@@ -9,11 +9,11 @@ require (
 	github.com/sunshineplan/utils v0.1.10
 	github.com/sunshineplan/utils/httpproxy v1.0.4
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e
+	golang.org/x/net v0.2.0
 )
 
 require (
-	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
-	golang.org/x/sys v0.0.0-20220908164124-27713097b956 // indirect
-	golang.org/x/tools v0.1.11 // indirect
+	golang.org/x/mod v0.7.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/tools v0.3.0 // indirect
 )

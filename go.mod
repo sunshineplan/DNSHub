@@ -9,11 +9,11 @@ require (
 	github.com/sunshineplan/utils v0.1.37
 	github.com/sunshineplan/utils/httpproxy v1.0.5
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
-	golang.org/x/net v0.9.0
+	golang.org/x/net v0.10.0
 )
 
 require (
 	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/tools v0.3.0 // indirect
 )

@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/miekg/dns v1.1.54
+	github.com/miekg/dns v1.1.55
 	github.com/sunshineplan/service v1.0.6
 	github.com/sunshineplan/utils v0.1.43
 	github.com/sunshineplan/utils/httpproxy v1.0.6

@@ -2,96 +2,51 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sunshineplan/service"
+	"github.com/sunshineplan/utils/flags"
 	_ "github.com/sunshineplan/utils/httpproxy"
-	"github.com/vharitonsky/iniflags"
 )
 
 var (
-	localDNS  = flag.String("local", "", "Local DNS")
-	remoteDNS = flag.String("remote", "8.8.8.8", "Remote DNS")
-	list      = flag.String("list", "", "Remote list `file`")
-	hosts     = flag.String("hosts", "", "Hosts `file`")
-	dnsProxy  = flag.String("proxy", "", "Remote DNS proxy")
-	port      = flag.Int("port", 53, "DNS port")
-	fallback  = flag.Bool("fallback", false, "Allow fallback")
+	self string
+
+	svc = service.New()
 )
 
-var self string
-
-var svc = service.Service{
-	Name:     "ProxyDNS",
-	Desc:     "Instance to serve Proxy DNS",
-	Exec:     run,
-	TestExec: test,
-	Options: service.Options{
-		Dependencies: []string{"After=network.target"},
-	},
-}
+var (
+	localDNS  = flag.String("local", "", `List of local DNS servers, separated with commas. Port numbers may also optionally be given as :<port-number> after each address`)
+	remoteDNS = flag.String("remote", "8.8.8.8", `List of remote DNS servers which must support tcp (default "8.8.8.8")`)
+	list      = flag.String("list", "", "Remote list `file`")
+	hosts     = flag.String("hosts", "", "Hosts `file`")
+	dnsProxy  = flag.String("proxy", "", "Remote DNS proxy, support http,https,socks5,socks5h proxy")
+	port      = flag.Int("port", 53, "DNS port (default 53)")
+	fallback  = flag.Bool("fallback", false, "Enable fallback")
+)
 
 func init() {
 	var err error
 	self, err = os.Executable()
 	if err != nil {
-		log.Fatalln("Failed to get self path:", err)
+		svc.Fatalln("Failed to get self path:", err)
 	}
-}
-
-func usage() {
-	fmt.Fprintf(flag.CommandLine.Output(), `Usage of %s:
-  -local <string>
-    	List of local DNS servers, separated with commas. Port numbers may also optionally be
-		given as :<port-number> after each address
-  -remote <string>
-    	List of remote DNS servers which must support tcp (default "8.8.8.8")
-  -list <file>
-    	Remote list file
-  -hosts <file>
-    	Hosts file
-  -proxy <string>
-    	Remote DNS proxy, support http,https,socks5,socks5h proxy
-  -port <port>
-    	DNS port (default 53)
-  -fallback
-    	Enable fallback
-  -update <url>
-    	Update URL
-%s`, os.Args[0], service.Usage)
+	svc.Name = "ProxyDNS"
+	svc.Desc = "Instance to serve Proxy DNS"
+	svc.Exec = run
+	svc.TestExec = test
+	svc.Options = service.Options{
+		Dependencies: []string{"Wants=network-online.target", "After=network.target"},
+	}
 }
 
 func main() {
-	flag.Usage = usage
 	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
-	iniflags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
-	iniflags.SetAllowMissingConfigFile(true)
-	iniflags.SetAllowUnknownFlags(true)
-	iniflags.Parse()
+	flags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
+	flags.Parse()
 
-	if service.IsWindowsService() {
-		svc.Run(false)
-		return
-	}
-
-	var err error
-	switch flag.NArg() {
-	case 0:
-		run()
-	case 1:
-		cmd := flag.Arg(0)
-		var ok bool
-		if ok, err = svc.Command(cmd); !ok {
-			log.Fatalln("Unknown argument:", cmd)
-		}
-	default:
-		log.Fatalf("Unknown arguments: %s", strings.Join(flag.Args(), " "))
-	}
-	if err != nil {
-		log.Fatalf("Failed to %s: %v", flag.Arg(0), err)
+	if err := svc.ParseAndRun(flag.Args()); err != nil {
+		svc.Fatal(err)
 	}
 }

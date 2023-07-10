@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -11,8 +10,10 @@ import (
 	"github.com/sunshineplan/utils/txt"
 )
 
-var mu sync.Mutex
-var remoteList []string
+var (
+	mu         sync.Mutex
+	remoteList []string
+)
 
 func initRemoteList() {
 	if *list == "" {
@@ -25,40 +26,48 @@ func initRemoteList() {
 	if *list != "" {
 		remoteList, err = txt.ReadFile(*list)
 		if err != nil {
-			log.Println("failed to load remote list file:", err)
+			svc.Println("failed to load remote list file:", err)
 		} else {
 			registerHandler()
 		}
 
 		w, err := fsnotify.NewWatcher()
 		if err != nil {
-			log.Print(err)
+			svc.Print(err)
 			return
 		}
-		if err = w.Add(*list); err != nil {
-			log.Print(err)
+		if err = w.Add(filepath.Dir(*list)); err != nil {
+			svc.Print(err)
 			return
 		}
 
 		go func() {
 			for {
-				event, ok := <-w.Events
-				if !ok {
-					return
-				}
-
-				switch event.Op.String() {
-				case "WRITE", "CREATE":
-					mu.Lock()
-					reRegisterHandler()
-					mu.Unlock()
-				case "REMOVE", "RENAME":
-					mu.Lock()
-					for _, i := range remoteList {
-						dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
+				select {
+				case err, ok := <-w.Errors:
+					if !ok {
+						return
 					}
-					remoteList = nil
-					mu.Unlock()
+					svc.Print(err)
+				case event, ok := <-w.Events:
+					if !ok {
+						return
+					}
+					if event.Name == *list {
+						switch {
+						case event.Has(fsnotify.Create), event.Has(fsnotify.Write):
+							mu.Lock()
+							reRegisterHandler()
+							mu.Unlock()
+						case event.Has(fsnotify.Remove), event.Has(fsnotify.Rename):
+							mu.Lock()
+							for _, i := range remoteList {
+								dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
+							}
+							remoteList = nil
+							mu.Unlock()
+						}
+					}
 				}
 			}
 		}()

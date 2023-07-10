@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"net/url"
 	"os"
@@ -17,10 +16,12 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-var serverAddr string
-var localDNSList, remoteDNSList []string
+var (
+	serverAddr                  string
+	localDNSList, remoteDNSList []string
 
-var trim = strings.TrimSpace
+	trim = strings.TrimSpace
+)
 
 func formatDNSAddr(a string) string {
 	hst, prt, err := net.SplitHostPort(a)
@@ -32,10 +33,10 @@ func formatDNSAddr(a string) string {
 	}
 
 	if ok, err := isLocal(trim(hst)); err != nil {
-		log.Print(err)
+		svc.Print(err)
 		return ""
 	} else if ok && prt == strconv.Itoa(*port) {
-		log.Print("local dns or remote dns can not same as server dns address")
+		svc.Print("local dns or remote dns can not same as server dns address")
 		return ""
 	}
 
@@ -95,7 +96,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				}
 				rr, err := dns.NewRR(s)
 				if err != nil {
-					log.Println("failed to create record:", s)
+					svc.Println("failed to create record:", s)
 					continue
 				}
 				if rr != nil {
@@ -110,7 +111,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 			s := fmt.Sprintf("%s CNAME %s", q, cname)
 			rr, err := dns.NewRR(s)
 			if err != nil {
-				log.Println("failed to create record:", s)
+				svc.Println("failed to create record:", s)
 				break
 			}
 			resp.Answer = append(resp.Answer, rr)
@@ -123,7 +124,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				s := fmt.Sprintf("%s TXT %q", q, i)
 				rr, err := dns.NewRR(s)
 				if err != nil {
-					log.Println("failed to create record:", s)
+					svc.Println("failed to create record:", s)
 					continue
 				}
 				resp.Answer = append(resp.Answer, rr)
@@ -138,7 +139,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				s := fmt.Sprintf("%s PTR %s", reverse, i)
 				rr, err := dns.NewRR(s)
 				if err != nil {
-					log.Println("failed to create record:", s)
+					svc.Println("failed to create record:", s)
 					continue
 				}
 				resp.Answer = append(resp.Answer, rr)
@@ -152,7 +153,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				s := fmt.Sprintf("%s MX %d %s", q, i.Pref, i.Host)
 				rr, err := dns.NewRR(s)
 				if err != nil {
-					log.Println("failed to create record:", s)
+					svc.Println("failed to create record:", s)
 					continue
 				}
 				resp.Answer = append(resp.Answer, rr)
@@ -166,7 +167,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				s := fmt.Sprintf("%s NS %s", q, i.Host)
 				rr, err := dns.NewRR(s)
 				if err != nil {
-					log.Println("failed to create record:", s)
+					svc.Println("failed to create record:", s)
 					continue
 				}
 				resp.Answer = append(resp.Answer, rr)
@@ -180,7 +181,7 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 				s := fmt.Sprintf("%s SRV %d %d %d %s", q, i.Priority, i.Weight, i.Port, i.Target)
 				rr, err := dns.NewRR(s)
 				if err != nil {
-					log.Println("failed to create record:", s)
+					svc.Println("failed to create record:", s)
 					continue
 				}
 				resp.Answer = append(resp.Answer, rr)
@@ -247,7 +248,7 @@ func local(w dns.ResponseWriter, r *dns.Msg) error {
 			func(addr string) (_ any, err error) { err = processLocal(w, r, addr); return },
 			func(_ string) (_ any, err error) { err = processDefault(w, r); return },
 		); err != nil {
-			log.Print(err)
+			svc.Print(err)
 			return err
 		}
 	}
@@ -272,7 +273,7 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 		)
 	}
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 	}
 
 	return
@@ -283,7 +284,7 @@ func loadDNSList() {
 	*remoteDNS = trim(*remoteDNS)
 
 	if *localDNS == "" || *remoteDNS == "" {
-		log.Print("Only local dns or remote dns was provided, fallback will be enabled.")
+		svc.Print("Only local dns or remote dns was provided, fallback will be enabled.")
 		*fallback = true
 	}
 
@@ -337,7 +338,7 @@ func reRegisterHandler() {
 	var err error
 	remoteList, err = txt.ReadFile(*list)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		return
 	}
 	if *fallback {
@@ -361,20 +362,17 @@ func reRegisterHandler() {
 	}
 }
 
-func run() {
-	var err error
+func run() (err error) {
 	serverAddr, err = testDNSPort(*port)
 	if err != nil {
-		log.Fatalf("failed to test dns port: %v", err)
+		return fmt.Errorf("failed to test dns port: %v", err)
 	}
 	loadDNSList()
 	parseHosts(*hosts)
 	initRemoteList()
 
-	log.Printf("listen on: %s", serverAddr)
-	if err := dns.ListenAndServe(serverAddr, "udp", dns.DefaultServeMux); err != nil {
-		log.Fatalf("failed to start server: %v", err)
-	}
+	svc.Printf("listen on: %s", serverAddr)
+	return dns.ListenAndServe(serverAddr, "udp", dns.DefaultServeMux)
 }
 
 func test() error {
@@ -438,9 +436,9 @@ func test() error {
 			if len(msg.Answer) == 0 {
 				return errors.New("no result")
 			}
-			log.Print(msg.Answer)
+			svc.Print(msg.Answer)
 		case <-done:
-			log.Print("test passed")
+			svc.Print("test passed")
 			return nil
 		}
 	}

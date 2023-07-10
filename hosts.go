@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"strings"
 
@@ -18,7 +17,7 @@ func parseHosts(file string) {
 
 	rows, err := txt.ReadFile(file)
 	if err != nil {
-		log.Print(err)
+		svc.Print(err)
 		return
 	}
 
@@ -29,12 +28,12 @@ func parseHosts(file string) {
 		if l := len(elem); l == 0 {
 			continue
 		} else if l < 2 {
-			log.Printf("illegal hosts row: line %d: %s", line, i)
+			svc.Printf("illegal hosts row: line %d: %s", line, i)
 			continue
 		}
 		ip := net.ParseIP(elem[0])
 		if ip == nil {
-			log.Printf("illegal hosts row: line %d: %s", line, i)
+			svc.Printf("illegal hosts row: line %d: %s", line, i)
 			continue
 		}
 		ipMap := ipv4
@@ -66,7 +65,7 @@ func importHosts(s map[string][]net.IP, t uint16) {
 			s := fmt.Sprintf("%s %s %s", dns.Fqdn(k), qType, ip)
 			rr, err := dns.NewRR(s)
 			if err != nil {
-				log.Println("failed to create record:", s)
+				svc.Println("failed to create record:", s)
 				continue
 			}
 			m.Answer = append(m.Answer, rr)

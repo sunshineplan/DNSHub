@@ -31,7 +31,7 @@ jobs:
           echo "date=$(TZ=PRC date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Delete Old Release
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             let release

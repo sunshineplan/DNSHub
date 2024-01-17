@@ -6,7 +6,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/miekg/dns v1.1.57
 	github.com/sunshineplan/service v1.0.19
-	github.com/sunshineplan/utils v0.1.62
+	github.com/sunshineplan/utils v0.1.63
 	github.com/sunshineplan/utils/httpproxy v1.0.6
 	golang.org/x/net v0.20.0
 )

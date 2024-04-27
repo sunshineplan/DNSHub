@@ -21,14 +21,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.x'
-
-      - name: Build
-        id: build
-        run: |
-          go build -ldflags "-s -w"
-          GOOS=windows go build -ldflags "-s -w"
-          echo "date=$(TZ=PRC date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+          go-version: stable
 
       - name: Delete Old Release
         uses: actions/github-script@v7
@@ -36,10 +29,9 @@ jobs:
           script: |
             let release
             try {
-              release = await github.rest.repos.getReleaseByTag({
+              release = await github.rest.repos.getLatestRelease({
                 owner: context.repo.owner,
-                repo: context.repo.repo,
-                tag: 'v1.0'
+                repo: context.repo.repo
               })
             } catch(e) {
               console.error(e)
@@ -55,20 +47,23 @@ jobs:
             await github.rest.git.deleteRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: 'tags/v1.0'
+              ref: 'tags/'+release.data.tag_name
             })
 
-      - name: Pack
+      - name: Build
+        id: build
         run: |
+          go build -ldflags "-s -w"
+          GOOS=windows go build -ldflags "-s -w"
           tar cvzf release-linux.tar.gz proxydns config.ini.default
           zip -9vr release-windows.zip proxydns.exe config.ini.default
+          echo "date=$(TZ=PRC date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v1.0
+          tag_name: ${{ steps.build.outputs.date }}
           name: ${{ steps.build.outputs.date }}
-          body: ${{ steps.build.outputs.date }}
           files: release*

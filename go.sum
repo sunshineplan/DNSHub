@@ -2,8 +2,8 @@ github.com/fsnotify/fsnotify v1.7.0 h1:8JEhPFa5W2WU7YfeZzPNqzMP6Lwt7L2715Ggo0nos
 github.com/fsnotify/fsnotify v1.7.0/go.mod h1:40Bi/Hjc2AVfZrqy+aj+yEI+/bRxZnMJyTJwOpGvigM=
 github.com/miekg/dns v1.1.59 h1:C9EXc/UToRwKLhK5wKU/I4QVsBUc8kE6MkHBkeypWZs=
 github.com/miekg/dns v1.1.59/go.mod h1:nZpewl5p6IvctfgrckopVx2OlSEHPRO/U4SYkRklrEk=
-github.com/sunshineplan/service v1.0.19 h1:lxf98DVN6mLhUsdTUhV5jpge1B2IlbizzuC9HA2+lzA=
-github.com/sunshineplan/service v1.0.19/go.mod h1:3RFUNitk8eESkVmcmXKHBpDwsjVT1CAaAevaNzoALY8=
+github.com/sunshineplan/service v1.0.20 h1:fmNR9yN8SW/ySES42Tg6B7wnMQwzzSOp01/wT3JyzAA=
+github.com/sunshineplan/service v1.0.20/go.mod h1:85r/lTsL++K4PnGpMrg3P9gfwrgGsTeTTPByR/J3g1Y=
 github.com/sunshineplan/utils v0.1.66 h1:YwIuVQxmaL0bEnEKHU64pseCC18w2MZVtyrmY4VFOew=
 github.com/sunshineplan/utils v0.1.66/go.mod h1:QMe2vCEFq9VliPac8WfXndi5jP0ZrPHus8wvJlgBy5M=
 github.com/sunshineplan/utils/httpproxy v1.0.6 h1:ZXLE5OcLbZ3LVKGjOP+JyNbeWcLOYTR+5srG1T9LF1s=

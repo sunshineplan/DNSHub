@@ -191,6 +191,9 @@ func processDefault(w dns.ResponseWriter, r *dns.Msg) (err error) {
 		}
 
 		setCache(resp.Question, resp)
+	} else {
+		resp = resp.Copy()
+		resp.Id = r.Id
 	}
 
 	return w.WriteMsg(resp)
@@ -204,6 +207,9 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
 			return
 		}
 		setCache(r.Question, resp)
+	} else {
+		resp = resp.Copy()
+		resp.Id = r.Id
 	}
 
 	return w.WriteMsg(resp)
@@ -234,6 +240,9 @@ func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
 			return err
 		}
 		setCache(r.Question, resp)
+	} else {
+		resp = resp.Copy()
+		resp.Id = r.Id
 	}
 
 	return w.WriteMsg(resp)

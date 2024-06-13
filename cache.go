@@ -8,19 +8,13 @@ import (
 	"github.com/sunshineplan/utils/cache"
 )
 
-var dnsCache = cache.New(true)
+var dnsCache = cache.New[string, *dns.Msg](true)
 
 func getCache(r *dns.Msg) (*dns.Msg, bool) {
-	value, ok := dnsCache.Get(fmt.Sprint(r.Question))
-	if ok {
-		v := value.(*dns.Msg)
-		v.Id = r.Id
-		return v, true
-	}
-	return nil, false
+	return dnsCache.Get(fmt.Sprint(r.Question))
 }
 
-func setCache(key any, r *dns.Msg) {
+func setCache(key []dns.Question, r *dns.Msg) {
 	if len(r.Answer) == 0 {
 		dnsCache.Set(fmt.Sprint(key), r, 300*time.Second, nil)
 		return

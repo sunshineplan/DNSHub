@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/miekg/dns v1.1.61
-	github.com/sunshineplan/service v1.0.20
+	github.com/sunshineplan/service v1.0.21
 	github.com/sunshineplan/utils v0.1.70
 	github.com/sunshineplan/utils/httpproxy v1.0.6
 	golang.org/x/net v0.26.0

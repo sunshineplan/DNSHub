@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/miekg/dns"
-	"github.com/sunshineplan/utils/executor"
 	"github.com/sunshineplan/utils/retry"
 	"github.com/sunshineplan/utils/txt"
+	"github.com/sunshineplan/workers/executor"
 	"golang.org/x/net/proxy"
 )
 
@@ -252,7 +252,7 @@ func local(w dns.ResponseWriter, r *dns.Msg) error {
 	if len(localDNSList) == 0 {
 		return processDefault(w, r)
 	} else {
-		if _, err := executor.ExecuteConcurrentArg(
+		if _, err := executor.New[string, any](0).ExecuteConcurrentArg(
 			localDNSList,
 			func(addr string) (_ any, err error) { err = processLocal(w, r, addr); return },
 			func(_ string) (_ any, err error) { err = processDefault(w, r); return },
@@ -271,12 +271,12 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 	}
 
 	if proxy := *dnsProxy; proxy != "" {
-		_, err = executor.ExecuteConcurrentArg(
+		_, err = executor.New[string, any](0).ExecuteConcurrentArg(
 			remoteDNSList,
 			func(addr string) (_ any, err error) { err = processProxy(w, r, proxy, addr); return },
 		)
 	} else {
-		_, err = executor.ExecuteConcurrentArg(
+		_, err = executor.New[string, any](0).ExecuteConcurrentArg(
 			remoteDNSList,
 			func(addr string) (_ any, err error) { err = processLocal(w, r, addr); return },
 		)
@@ -313,19 +313,17 @@ func loadDNSList() {
 func registerHandler() {
 	if *fallback {
 		dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
-			executor.ExecuteSerial(
-				nil,
-				func(_ any) (_ any, err error) { err = local(w, r); return },
-				func(_ any) (_ any, err error) { err = remote(w, r); return },
+			executor.New[func(dns.ResponseWriter, *dns.Msg) error, any](0).ExecuteSerial(
+				[]func(dns.ResponseWriter, *dns.Msg) error{local, remote},
+				func(f func(dns.ResponseWriter, *dns.Msg) error) (_ any, err error) { err = f(w, r); return },
 			)
 		})
 		if len(remoteDNSList) != 0 {
 			for _, i := range remoteList {
 				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
-					executor.ExecuteSerial(
-						nil,
-						func(_ any) (_ any, err error) { err = remote(w, r); return },
-						func(_ any) (_ any, err error) { err = local(w, r); return },
+					executor.New[func(dns.ResponseWriter, *dns.Msg) error, any](0).ExecuteSerial(
+						[]func(dns.ResponseWriter, *dns.Msg) error{remote, local},
+						func(f func(dns.ResponseWriter, *dns.Msg) error) (_ any, err error) { err = f(w, r); return },
 					)
 				})
 			}
@@ -354,10 +352,9 @@ func reRegisterHandler() {
 		if len(remoteDNSList) != 0 {
 			for _, i := range remoteList {
 				dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
-					executor.ExecuteSerial(
-						nil,
-						func(_ any) (_ any, err error) { err = remote(w, r); return },
-						func(_ any) (_ any, err error) { err = local(w, r); return },
+					executor.New[func(dns.ResponseWriter, *dns.Msg) error, any](0).ExecuteSerial(
+						[]func(dns.ResponseWriter, *dns.Msg) error{remote, local},
+						func(f func(dns.ResponseWriter, *dns.Msg) error) (_ any, err error) { err = f(w, r); return },
 					)
 				})
 			}

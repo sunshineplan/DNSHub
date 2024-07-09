@@ -8,6 +8,8 @@ github.com/sunshineplan/utils v0.1.71 h1:FTe6qAdevePih+hLil1KvKhMAU2Bp+qHTtlO0wx
 github.com/sunshineplan/utils v0.1.71/go.mod h1:QMe2vCEFq9VliPac8WfXndi5jP0ZrPHus8wvJlgBy5M=
 github.com/sunshineplan/utils/httpproxy v1.0.6 h1:ZXLE5OcLbZ3LVKGjOP+JyNbeWcLOYTR+5srG1T9LF1s=
 github.com/sunshineplan/utils/httpproxy v1.0.6/go.mod h1:4TO5jy9+SS2y0L6Znua0ZRDvuabRdcLUYBIfUkL8Yk0=
+github.com/sunshineplan/workers v1.0.1 h1:vhDo4ZaerVu0QM1udRmWpvHY2U61/vTLRVwmKcYOxNw=
+github.com/sunshineplan/workers v1.0.1/go.mod h1:EjLgk5vd/2ig6vdWDAZy/fpkzdSm8IVDsARPQVSyQy0=
 golang.org/x/mod v0.18.0 h1:5+9lSbEzPSdWkH32vYPBwEpX8KwDbM52Ud9xBUvNlb0=
 golang.org/x/mod v0.18.0/go.mod h1:hTbmBsO62+eylJbnUtE2MGJUyE7QWk4xUqPFrRgJ+7c=
 golang.org/x/net v0.27.0 h1:5K3Njcw06/l2y9vpGCSdcxWOYHOUk3dVNGDXN+FvAys=

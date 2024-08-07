@@ -9,12 +9,12 @@ require (
 	github.com/sunshineplan/utils v0.1.71
 	github.com/sunshineplan/utils/httpproxy v1.0.6
 	github.com/sunshineplan/workers v1.0.1
-	golang.org/x/net v0.27.0
+	golang.org/x/net v0.28.0
 )
 
 require (
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
 	golang.org/x/tools v0.22.0 // indirect
 )

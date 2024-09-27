@@ -2,12 +2,13 @@ package main
 
 import (
 	"flag"
+	"net/url"
 	"os"
 	"path/filepath"
 
 	"github.com/sunshineplan/service"
 	"github.com/sunshineplan/utils/flags"
-	_ "github.com/sunshineplan/utils/httpproxy"
+	"golang.org/x/net/proxy"
 )
 
 var (
@@ -45,6 +46,17 @@ func main() {
 	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
 	flags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
 	flags.Parse()
+
+	if *dnsProxy != "" {
+		u, err := url.Parse(*dnsProxy)
+		if err != nil {
+			svc.Fatal(err)
+		}
+		proxyDialer, err = proxy.FromURL(u, nil)
+		if err != nil {
+			svc.Fatal(err)
+		}
+	}
 
 	if err := svc.ParseAndRun(flag.Args()); err != nil {
 		svc.Fatal(err)

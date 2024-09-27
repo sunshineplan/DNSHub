@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
 
 	"github.com/miekg/dns"
+	"github.com/sunshineplan/httpproxy"
 	"github.com/sunshineplan/utils/retry"
 	"github.com/sunshineplan/utils/txt"
 	"github.com/sunshineplan/workers/executor"
@@ -215,21 +215,17 @@ func processLocal(w dns.ResponseWriter, r *dns.Msg, addr string) (err error) {
 	return w.WriteMsg(resp)
 }
 
-func processProxy(w dns.ResponseWriter, r *dns.Msg, p, addr string) error {
+func init() {
+	proxy.RegisterDialerType("http", httpproxy.FromURL)
+	proxy.RegisterDialerType("https", httpproxy.FromURL)
+}
+
+var proxyDialer proxy.Dialer
+
+func processProxy(w dns.ResponseWriter, r *dns.Msg, addr string) error {
 	resp, ok := getCache(r)
 	if !ok {
-		u, err := url.Parse(p)
-		if err != nil || u.Host == "" {
-			u, err = url.Parse("http://" + p)
-			if err != nil {
-				return err
-			}
-		}
-		d, err := proxy.FromURL(u, nil)
-		if err != nil {
-			return err
-		}
-		conn, err := d.Dial("tcp", addr)
+		conn, err := proxyDialer.Dial("tcp", addr)
 		if err != nil {
 			return err
 		}
@@ -270,10 +266,10 @@ func remote(w dns.ResponseWriter, r *dns.Msg) (err error) {
 		return errors.New("no remote dns provided")
 	}
 
-	if proxy := *dnsProxy; proxy != "" {
+	if proxyDialer != nil {
 		_, err = executor.New[string, any](0).ExecuteConcurrentArg(
 			remoteDNSList,
-			func(addr string) (_ any, err error) { err = processProxy(w, r, proxy, addr); return },
+			func(addr string) (_ any, err error) { err = processProxy(w, r, addr); return },
 		)
 	} else {
 		_, err = executor.New[string, any](0).ExecuteConcurrentArg(

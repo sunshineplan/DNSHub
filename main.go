@@ -2,39 +2,29 @@ package main
 
 import (
 	"flag"
-	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/sunshineplan/service"
 	"github.com/sunshineplan/utils/flags"
-	"golang.org/x/net/proxy"
 )
 
-var (
-	self string
-
-	svc = service.New()
-)
+var svc = service.New()
 
 var (
-	localDNS  = flag.String("local", "", `List of local DNS servers, separated with commas. Port numbers may also optionally be given as :<port-number> after each address`)
-	remoteDNS = flag.String("remote", "8.8.8.8", `List of remote DNS servers which must support tcp (default "8.8.8.8")`)
-	list      = flag.String("list", "", "Remote list `file`")
-	hosts     = flag.String("hosts", "", "Hosts `file`")
-	dnsProxy  = flag.String("proxy", "", "Remote DNS proxy, support http,https,socks5,socks5h proxy")
-	port      = flag.Int("port", 53, "DNS port (default 53)")
-	fallback  = flag.Bool("fallback", false, "Enable fallback")
+	primary  = flag.String("primary", "", `List of primary DNS, separated with commas.`)
+	backup   = flag.String("backup", "", `List of backup DNS`)
+	exclude  = flag.String("exclude", "", "Exclude list `file` which only use backup DNS")
+	hosts    = flag.String("hosts", "", "Hosts `file`")
+	port     = flag.Int("port", 53, "DNS server port (default 53)")
+	fallback = flag.Bool("fallback", false, "Enable fallback")
+	timeout  = flag.Duration("timeout", 5*time.Second, "Query timeout")
 )
 
 func init() {
-	var err error
-	self, err = os.Executable()
-	if err != nil {
-		svc.Fatalln("Failed to get self path:", err)
-	}
-	svc.Name = "ProxyDNS"
-	svc.Desc = "Instance to serve Proxy DNS"
+	svc.Name = "DNSHub"
+	svc.Desc = "Instance to serve DNSHub"
 	svc.Exec = run
 	svc.TestExec = test
 	svc.Options = service.Options{
@@ -43,19 +33,16 @@ func init() {
 }
 
 func main() {
+	self, err := os.Executable()
+	if err != nil {
+		svc.Fatalln("Failed to get self path:", err)
+	}
 	flag.StringVar(&svc.Options.UpdateURL, "update", "", "Update URL")
 	flags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
 	flags.Parse()
 
-	if *dnsProxy != "" {
-		u, err := url.Parse(*dnsProxy)
-		if err != nil {
-			svc.Fatal(err)
-		}
-		proxyDialer, err = proxy.FromURL(u, nil)
-		if err != nil {
-			svc.Fatal(err)
-		}
+	if *exclude == "" {
+		*exclude = filepath.Join(filepath.Dir(self), "exclude.list")
 	}
 
 	if err := svc.ParseAndRun(flag.Args()); err != nil {

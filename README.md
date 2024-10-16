@@ -1,24 +1,27 @@
-# Proxy DNS
+# DNSHub
 
-Proxy DNS serves as a DNS proxy server.
+DNSHub - Fast and Reliable DNS Relay Hub
 
-The domains in remote list will use remote DNS for query. Remote DNS must support tcp connection.
-If remote list file is changed, it will be reloaded automatically.
-If proxy is specified, it will connect remote DNS using this proxy.
-Currently, support http,https,socks5,socks5h proxy.
+DNSHub is a flexible and efficient DNS relay hub designed to enhance DNS query performance and reliability.
+
+	•	Primary & Backup DNS: Queries are sent to multiple primary DNS servers, and the first successful response is used. If all primary servers fail, backup DNS servers will be used (if fallback is enabled).
+	•	Response Caching: Cache DNS results to speed up future queries.
+	•	Domain Exclusion List: Configure specific domains to exclusively use backup DNS servers, bypassing primary ones.
+
+DNSHub ensures fast resolution with high availability, making it ideal for both personal and enterprise use.
 
 ## Installation
 
 ```bash
-curl -Lo- https://github.com/sunshineplan/proxydns/releases/latest/download/release-linux.tar.gz | tar zxC .
-chmod +x proxydns
-./proxydns install
-./proxydns start
+curl -Lo- https://github.com/sunshineplan/dnshub/releases/latest/download/release-linux.tar.gz | tar zxC .
+chmod +x dnshub
+./dnshub install
+./dnshub start
 ```
 You can also build your own binary by:
 ```cmd
-git clone https://github.com/sunshineplan/proxydns.git
-cd proxydns
+git clone https://github.com/sunshineplan/dnshub.git
+cd dnshub
 go build
 ```
 
@@ -34,17 +37,14 @@ This repo relies on:
 ### Command Line
 
 ```
-  -local <string>
-    	List of local DNS servers, separated with commas. Port numbers may also optionally be
-		given as :<port-number> after each address
-  -remote <string>
-    	List of remote DNS servers which must support tcp (default "8.8.8.8")
-  -list <file>
-    	Remote list file
+  -primary <string>
+    	List of primary DNS, separated with commas
+  -backup <string>
+    	List of backup DNS
+  -exclude <file>
+    	Exclude list file
   -hosts <file>
     	Hosts file
-  -proxy <string>
-    	Remote DNS proxy, support http,https,socks5,socks5h proxy
   -port <port>
     	DNS port (default 53)
   -fallback
@@ -79,19 +79,17 @@ This repo relies on:
 ### config.ini
 
 ```
-local    = 1.1.1.1
-remote   = 8.8.8.8
-list     = remote.list
+dns      = 1.1.1.1
+backup   = 8.8.8.8
 hosts    = /etc/hosts
-proxy    = http://127.0.0.1:1080
 port     = 53
 fallback = true
 ```
 
-### remote.list
+### exclude.list
 
 ```
-google.com
+github.com
 ```
 
 ### hosts

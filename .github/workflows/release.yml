@@ -27,9 +27,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            let release
+            let response
             try {
-              release = await github.rest.repos.getLatestRelease({
+              response = await github.rest.repos.listReleases({
                 owner: context.repo.owner,
                 repo: context.repo.repo
               })
@@ -38,17 +38,19 @@ jobs:
               return
             }
 
-            await github.rest.repos.deleteRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              release_id: release.data.id
-            })
+            for (const release of response.data) {
+              await github.rest.repos.deleteRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                release_id: release.id
+              })
 
-            await github.rest.git.deleteRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'tags/'+release.data.tag_name
-            })
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: 'tags/'+release.tag_name
+              })
+            }
 
       - name: Build
         id: build

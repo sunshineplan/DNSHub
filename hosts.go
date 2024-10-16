@@ -9,8 +9,8 @@ import (
 	"github.com/sunshineplan/utils/txt"
 )
 
-func parseHosts(file string) {
-	file = trim(file)
+func initHosts(file string) {
+	file = strings.TrimSpace(file)
 	if file == "" {
 		return
 	}

@@ -1,7 +1,5 @@
-local    = 1.1.1.1
-remote   = 8.8.8.8
-list     = remote.list
+primary  = 1.1.1.1
+backup   = 8.8.8.8
 hosts    = /etc/hosts
-proxy    = http://127.0.0.1:1080
 port     = 53
 fallback = true

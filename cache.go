@@ -11,7 +11,12 @@ import (
 var dnsCache = cache.New[string, *dns.Msg](true)
 
 func getCache(r *dns.Msg) (*dns.Msg, bool) {
-	return dnsCache.Get(fmt.Sprint(r.Question))
+	if m, ok := dnsCache.Get(fmt.Sprint(r.Question)); ok {
+		m = m.Copy()
+		m.Id = r.Id
+		return m, true
+	}
+	return nil, false
 }
 
 func setCache(key []dns.Question, r *dns.Msg) {
@@ -19,7 +24,6 @@ func setCache(key []dns.Question, r *dns.Msg) {
 		dnsCache.Set(fmt.Sprint(key), r, 300*time.Second, nil)
 		return
 	}
-
 	ttl := r.Answer[0].Header().Ttl
 	if ttl == 0 {
 		ttl = 300

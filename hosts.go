@@ -9,15 +9,14 @@ import (
 	"github.com/sunshineplan/utils/txt"
 )
 
-func parseHosts(file string) {
-	file = trim(file)
-	if file == "" {
+func initHosts(file string) {
+	if file = strings.TrimSpace(file); file == "" {
 		return
 	}
 
 	rows, err := txt.ReadFile(file)
 	if err != nil {
-		svc.Print(err)
+		svc.Error("failed to load hosts list file", "error", err)
 		return
 	}
 
@@ -28,12 +27,12 @@ func parseHosts(file string) {
 		if l := len(elem); l == 0 {
 			continue
 		} else if l < 2 {
-			svc.Printf("illegal hosts row: line %d: %s", line, i)
+			svc.Error("illegal hosts row", "line", line, "row", i)
 			continue
 		}
 		ip := net.ParseIP(elem[0])
 		if ip == nil {
-			svc.Printf("illegal hosts row: line %d: %s", line, i)
+			svc.Error("illegal hosts row", "line", line, "row", i)
 			continue
 		}
 		ipMap := ipv4
@@ -44,6 +43,7 @@ func parseHosts(file string) {
 			if index == 0 {
 				continue
 			}
+			svc.Debug("hosts", "host", i, "ip", ip)
 			ipMap[i] = append(ipMap[i], ip)
 		}
 	}
@@ -65,7 +65,7 @@ func importHosts(s map[string][]net.IP, t uint16) {
 			s := fmt.Sprintf("%s %s %s", dns.Fqdn(k), qType, ip)
 			rr, err := dns.NewRR(s)
 			if err != nil {
-				svc.Println("failed to create record:", s)
+				svc.Error("failed to create record", "error", err, "content", s)
 				continue
 			}
 			m.Answer = append(m.Answer, rr)

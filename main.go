@@ -2,12 +2,14 @@ package main
 
 import (
 	"flag"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"time"
 
 	"github.com/sunshineplan/service"
 	"github.com/sunshineplan/utils/flags"
+	"github.com/sunshineplan/utils/log"
 )
 
 var svc = service.New()
@@ -21,6 +23,8 @@ var (
 	dnsProxy = flag.String("proxy", "", "List of proxies for DNS")
 	fallback = flag.Bool("fallback", false, "Enable fallback")
 	timeout  = flag.Duration("timeout", 5*time.Second, "Query timeout")
+	logPath  = flag.String("log", "", "Path to log file")
+	debug    = flag.Bool("debug", false, "debug")
 )
 
 func init() {
@@ -42,6 +46,12 @@ func main() {
 	flags.SetConfigFile(filepath.Join(filepath.Dir(self), "config.ini"))
 	flags.Parse()
 
+	if *logPath != "" {
+		svc.Logger = log.New(*logPath, "", log.LstdFlags)
+	}
+	if *debug {
+		svc.Logger.SetLevel(slog.LevelDebug)
+	}
 	if *exclude == "" {
 		*exclude = filepath.Join(filepath.Dir(self), "exclude.list")
 	}

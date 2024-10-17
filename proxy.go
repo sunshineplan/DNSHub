@@ -24,14 +24,15 @@ func initProxy() {
 		}
 		u, err := url.Parse(i)
 		if err != nil {
-			svc.Print(err)
+			svc.Error("failed to parse url", "error", err)
 			continue
 		}
 		p, err := proxy.FromURL(u, nil)
 		if err != nil {
-			svc.Print(err)
+			svc.Error("failed to parse proxy", "error", err)
 			continue
 		}
+		svc.Debug("proxy list", "index", len(proxyList)+1, "proxy", u)
 		proxyList = append(proxyList, p)
 	}
 }
@@ -47,6 +48,7 @@ func parseProxy(s string) (string, proxy.Dialer) {
 	}
 	var p proxy.Dialer
 	if n > 0 && n <= len(proxyList) {
+		svc.Debug("use proxy", "proxy", n)
 		p = proxyList[n-1]
 	}
 	return strings.TrimLeft(s, "*"), p

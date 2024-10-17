@@ -13,6 +13,7 @@ import (
 
 type Client interface {
 	ExchangeContext(context.Context, *dns.Msg) (*dns.Msg, error)
+	Name() string
 }
 
 type client struct {
@@ -26,7 +27,7 @@ func parseClients(s string) (clients []Client) {
 		if i = strings.TrimSpace(i); i == "" {
 			continue
 		}
-		addr, dialer := parseProxy(s)
+		addr, dialer := parseProxy(i)
 		c := &client{addr, new(dns.Client), dialer}
 		var ok bool
 		if c.addr, ok = strings.CutSuffix(c.addr, "@tcp-tls"); ok {
@@ -39,11 +40,12 @@ func parseClients(s string) (clients []Client) {
 		c.addr, _, _ = strings.Cut(c.addr, "@")
 		if _, _, err := net.SplitHostPort(c.addr); err != nil {
 			if c.Net == "tcp-tls" {
-				c.addr += "853"
+				c.addr += ":853"
 			} else {
-				c.addr += ":domain"
+				c.addr += ":53"
 			}
 		}
+		svc.Debug("found DNS", "network", c.Net, "address", c.addr)
 		clients = append(clients, c)
 	}
 	return
@@ -75,13 +77,17 @@ func (c *client) ExchangeContext(ctx context.Context, m *dns.Msg) (r *dns.Msg, e
 	return
 }
 
-var defaultClient = localResolver{net.DefaultResolver}
+func (c *client) Name() string {
+	return c.addr
+}
 
-type localResolver struct {
+var defaultResolver = &resolver{net.DefaultResolver}
+
+type resolver struct {
 	*net.Resolver
 }
 
-func (r localResolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
+func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
 	m = m.Copy()
 	q := m.Question[0].Name
 	qType := m.Question[0].Qtype
@@ -192,4 +198,8 @@ func (r localResolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Ms
 		return nil, fmt.Errorf("not supported query type for local lookup: %d", qType)
 	}
 	return m, nil
+}
+
+func (resolver) Name() string {
+	return "system"
 }

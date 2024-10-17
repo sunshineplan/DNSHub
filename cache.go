@@ -24,7 +24,6 @@ func setCache(key []dns.Question, r *dns.Msg) {
 		dnsCache.Set(fmt.Sprint(key), r, 300*time.Second, nil)
 		return
 	}
-
 	ttl := r.Answer[0].Header().Ttl
 	if ttl == 0 {
 		ttl = 300

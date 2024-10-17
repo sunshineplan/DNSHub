@@ -7,49 +7,68 @@ import (
 	"github.com/sunshineplan/workers/executor"
 )
 
-var dnsExecutor = executor.New[Client, *dns.Msg](0)
+var dnsExecutor = executor.New[Client, *Result](0)
 
-func ExchangeContext(ctx context.Context, r *dns.Msg, clients []Client) (*dns.Msg, error) {
+type Result struct {
+	msg  *dns.Msg
+	name string
+}
+
+func ExchangeContext(ctx context.Context, r *dns.Msg, clients []Client) (*Result, error) {
 	return dnsExecutor.ExecuteConcurrentArg(
 		clients,
-		func(c Client) (*dns.Msg, error) { return c.ExchangeContext(ctx, r) },
+		func(c Client) (*Result, error) {
+			m, err := c.ExchangeContext(ctx, r)
+			if err != nil {
+				return nil, err
+			}
+			return &Result{m, c.Name()}, nil
+		},
 	)
 }
 
-func initHandler(clients, backup []Client) {
+func initHandle(primary, backup []Client) {
 	dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
+		svc.Debug("request", "client", w.RemoteAddr(), "question", r.Question)
 		if m, ok := getCache(r); ok {
+			svc.Debug("cached", "result", m)
 			w.WriteMsg(m)
 			return
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 		defer cancel()
-		m, err := ExchangeContext(ctx, r, clients)
+		m, err := ExchangeContext(ctx, r, primary)
 		if err != nil {
-			svc.Print(err)
+			svc.Error("request failed", "error", err)
 			if *fallback {
 				ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 				defer cancel()
 				if m, err = ExchangeContext(ctx, r, backup); err != nil {
-					svc.Print(err)
+					svc.Error("fallback request failed", "error", err)
 				}
 			}
 		}
 		if err != nil {
 			return
 		}
-		setCache(r.Question, m)
-		w.WriteMsg(m)
+		svc.Debug("uncached", "DNS", m.name, "result", m.msg)
+		setCache(r.Question, m.msg)
+		w.WriteMsg(m.msg)
 	})
 }
 
 func registerExclude(old, new []string, clients []Client) {
+	svc.Debug("register exclude handle")
 	for _, i := range old {
+		svc.Debug("remove", "pattern", i)
 		dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
 	}
 	for _, i := range new {
+		svc.Debug("add", "pattern", i)
 		dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
+			svc.Debug("request exclude", "client", w.RemoteAddr(), "question", r.Question)
 			if m, ok := getCache(r); ok {
+				svc.Debug("cached", "result", m)
 				w.WriteMsg(m)
 				return
 			}
@@ -57,11 +76,12 @@ func registerExclude(old, new []string, clients []Client) {
 			defer cancel()
 			m, err := ExchangeContext(ctx, r, clients)
 			if err != nil {
-				svc.Print(err)
+				svc.Error("request exclude failed", "error", err)
 				return
 			}
-			setCache(r.Question, m)
-			w.WriteMsg(m)
+			svc.Debug("uncached", "DNS", m.name, "result", m.msg)
+			setCache(r.Question, m.msg)
+			w.WriteMsg(m.msg)
 		})
 	}
 }

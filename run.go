@@ -12,19 +12,45 @@ import (
 )
 
 func run() error {
+	svc.Print("Start DNSHub")
 	addr, err := testDNSPort(*port)
 	if err != nil {
 		return fmt.Errorf("failed to test dns port: %v", err)
 	}
+
+	svc.Debug("init proxy")
 	initProxy()
+
+	svc.Debug("init primary DNS")
 	primary := parseClients(*primary)
-	if len(primary) == 0 {
-		primary = append(primary, defaultClient)
-	}
+	svc.Debug("init backup DNS")
 	backup := parseClients(*backup)
+
+	if *fallback {
+		svc.Debug("allow fallback, add system DNS to backup")
+		backup = append(backup, defaultResolver)
+	}
+	if len(backup) == 0 && len(primary) != 0 {
+		svc.Debug("no backup DNS found, add system DNS to backup")
+		backup = append(backup, defaultResolver)
+	}
+	if len(primary) == 0 {
+		svc.Debug("no primary DNS found, add system DNS to primary")
+		primary = append(primary, defaultResolver)
+	}
+
+	svc.Debug("init exclude list")
+	exclude := initExcludeList(*exclude, backup)
+	for _, i := range exclude {
+		svc.Debug("exclude", "domain", i)
+	}
+
+	svc.Debug("init hosts")
 	initHosts(*hosts)
-	initHandler(primary, backup)
-	registerExclude(nil, initExcludeList(*exclude, backup), backup)
+
+	svc.Debug("init handle")
+	initHandle(primary, backup)
+	registerExclude(nil, exclude, backup)
 
 	svc.Printf("listen on: %s", addr)
 	return dns.ListenAndServe(addr, "udp", dns.DefaultServeMux)
@@ -48,13 +74,14 @@ func test() error {
 	rc := make(chan *dns.Msg)
 	done := make(chan struct{})
 
-	initHandler([]Client{defaultClient}, nil)
+	initHandle([]Client{defaultResolver}, nil)
 	initHosts(testHosts.Name())
 	go func() { ec <- dns.ListenAndServe(addr, "udp", dns.DefaultServeMux) }()
 
 	var query = func(q, expected string) error {
 		var r *dns.Msg
 		m := new(dns.Msg).SetQuestion(q, dns.TypeA)
+		svc.Print(m.Question)
 		return retry.Do(
 			func() (err error) {
 				r, err = dns.Exchange(m, addr)

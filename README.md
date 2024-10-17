@@ -81,7 +81,7 @@ This repo relies on:
 ### config.ini
 
 ```
-dns      = 1.1.1.1
+primary  = 1.1.1.1
 backup   = *8.8.8.8@tcp-tls
 proxy    = socks5://username:password@localhost:1080
 hosts    = /etc/hosts

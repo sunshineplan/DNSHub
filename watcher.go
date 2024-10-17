@@ -11,16 +11,16 @@ import (
 func initExcludeList(file string, clients []Client) []string {
 	exclude, err := txt.ReadFile(file)
 	if err != nil {
-		svc.Println("failed to load exclude list file:", err)
+		svc.Error("failed to load exclude list file", "error", err)
 	}
 
 	w, err := fsnotify.NewWatcher()
 	if err != nil {
-		svc.Print(err)
+		svc.Error("failed to create watcher", "error", err)
 		return nil
 	}
 	if err = w.Add(filepath.Dir(file)); err != nil {
-		svc.Print(err)
+		svc.Error("failed to add watch path", "error", err)
 		return nil
 	}
 
@@ -31,7 +31,7 @@ func initExcludeList(file string, clients []Client) []string {
 				if !ok {
 					return
 				}
-				svc.Print(err)
+				svc.Error("watch error", "error", err)
 			case event, ok := <-w.Events:
 				if !ok {
 					return
@@ -41,7 +41,7 @@ func initExcludeList(file string, clients []Client) []string {
 					case event.Has(fsnotify.Create), event.Has(fsnotify.Write):
 						s, err := txt.ReadFile(file)
 						if err != nil {
-							svc.Println("failed to load exclude list file:", err)
+							svc.Error("failed to load exclude list file", "error", err)
 						} else {
 							registerExclude(exclude, s, clients)
 							exclude = s

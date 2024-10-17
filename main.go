@@ -13,11 +13,12 @@ import (
 var svc = service.New()
 
 var (
-	primary  = flag.String("primary", "", `List of primary DNS, separated with commas.`)
+	primary  = flag.String("primary", "", `List of primary DNS, separated with commas`)
 	backup   = flag.String("backup", "", `List of backup DNS`)
-	exclude  = flag.String("exclude", "", "Exclude list `file` which only use backup DNS")
+	exclude  = flag.String("exclude", "", "Exclusion list `file` which only use backup DNS")
 	hosts    = flag.String("hosts", "", "Hosts `file`")
 	port     = flag.Int("port", 53, "DNS server port (default 53)")
+	dnsProxy = flag.String("proxy", "", "List of proxies for DNS")
 	fallback = flag.Bool("fallback", false, "Enable fallback")
 	timeout  = flag.Duration("timeout", 5*time.Second, "Query timeout")
 )

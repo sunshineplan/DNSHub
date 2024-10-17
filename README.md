@@ -4,9 +4,9 @@ DNSHub - Fast and Reliable DNS Relay Hub
 
 DNSHub is a flexible and efficient DNS relay hub designed to enhance DNS query performance and reliability.
 
-	•	Primary & Backup DNS: Queries are sent to multiple primary DNS servers, and the first successful response is used. If all primary servers fail, backup DNS servers will be used (if fallback is enabled).
-	•	Response Caching: Cache DNS results to speed up future queries.
-	•	Domain Exclusion List: Configure specific domains to exclusively use backup DNS servers, bypassing primary ones.
+- Primary & Backup DNS: Queries are sent to multiple primary DNS servers, and the first successful response is used. If all primary servers fail, backup DNS servers will be used (if fallback is enabled).
+- Response Caching: Cache DNS results to speed up future queries.
+- Domain Exclusion List: Configure specific domains to exclusively use backup DNS servers, bypassing primary ones.
 
 DNSHub ensures fast resolution with high availability, making it ideal for both personal and enterprise use.
 
@@ -45,6 +45,8 @@ This repo relies on:
     	Exclude list file
   -hosts <file>
     	Hosts file
+  -proxy <string>
+    	List of proxies for DNS
   -port <port>
     	DNS port (default 53)
   -fallback
@@ -80,7 +82,8 @@ This repo relies on:
 
 ```
 dns      = 1.1.1.1
-backup   = 8.8.8.8
+backup   = *8.8.8.8@tcp-tls
+proxy    = socks5://username:password@localhost:1080
 hosts    = /etc/hosts
 port     = 53
 fallback = true

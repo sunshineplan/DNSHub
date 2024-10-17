@@ -16,6 +16,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to test dns port: %v", err)
 	}
+	initProxy()
 	primary := parseClients(*primary)
 	if len(primary) == 0 {
 		primary = append(primary, defaultClient)

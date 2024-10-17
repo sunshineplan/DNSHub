@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"strings"
 
 	"github.com/miekg/dns"
+	"golang.org/x/net/proxy"
 )
 
 type Client interface {
@@ -16,6 +18,7 @@ type Client interface {
 type client struct {
 	addr string
 	*dns.Client
+	proxy proxy.Dialer
 }
 
 func parseClients(s string) (clients []Client) {
@@ -23,10 +26,13 @@ func parseClients(s string) (clients []Client) {
 		if i = strings.TrimSpace(i); i == "" {
 			continue
 		}
-		c := &client{i, new(dns.Client)}
+		addr, dialer := parseProxy(s)
+		c := &client{addr, new(dns.Client), dialer}
 		var ok bool
 		if c.addr, ok = strings.CutSuffix(c.addr, "@tcp-tls"); ok {
 			c.Net = "tcp-tls"
+			servername, _, _ := net.SplitHostPort(c.addr)
+			c.TLSConfig = &tls.Config{ServerName: servername}
 		} else if c.addr, ok = strings.CutSuffix(c.addr, "@tcp"); ok {
 			c.Net = "tcp"
 		}
@@ -44,7 +50,28 @@ func parseClients(s string) (clients []Client) {
 }
 
 func (c *client) ExchangeContext(ctx context.Context, m *dns.Msg) (r *dns.Msg, err error) {
-	r, _, err = c.Client.ExchangeContext(ctx, m, c.addr)
+	if c.proxy == nil {
+		r, _, err = c.Client.ExchangeContext(ctx, m, c.addr)
+	} else {
+		network := c.Net
+		if network == "" {
+			network = "udp"
+		}
+		network = strings.TrimSuffix(network, "-tls")
+		var conn net.Conn
+		if d, ok := c.proxy.(proxy.ContextDialer); ok {
+			conn, err = d.DialContext(ctx, network, c.addr)
+		} else {
+			conn, err = dialContext(ctx, c.proxy, network, c.addr)
+		}
+		if err != nil {
+			return
+		}
+		if c.TLSConfig != nil {
+			conn = tls.Client(conn, c.TLSConfig)
+		}
+		r, _, err = c.ExchangeWithConnContext(ctx, r, &dns.Conn{Conn: conn})
+	}
 	return
 }
 

@@ -8,7 +8,7 @@ import (
 	"github.com/sunshineplan/utils/txt"
 )
 
-func initExcludeList(file string, clients []Client) []string {
+func initExcludeList(file string, primary, backup []Client) []string {
 	exclude, err := txt.ReadFile(file)
 	if err != nil {
 		svc.Error("failed to load exclude list file", "error", err)
@@ -43,7 +43,7 @@ func initExcludeList(file string, clients []Client) []string {
 						if err != nil {
 							svc.Error("failed to load exclude list file", "error", err)
 						} else {
-							registerExclude(exclude, s, clients)
+							registerExclude(exclude, s, primary, backup)
 							exclude = s
 						}
 					case event.Has(fsnotify.Remove), event.Has(fsnotify.Rename):

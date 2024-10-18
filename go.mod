@@ -1,4 +1,4 @@
-module proxydns
+module dnshub
 
 go 1.23
 

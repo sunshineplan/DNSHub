@@ -21,26 +21,33 @@ func run() error {
 	svc.Debug("init proxy")
 	initProxy()
 
+	var noPrimary, noBackup bool
 	svc.Debug("init primary DNS")
 	primary := parseClients(*primary)
+	if len(primary) == 0 {
+		noPrimary = true
+	}
 	svc.Debug("init backup DNS")
 	backup := parseClients(*backup)
+	if len(backup) == 0 {
+		noBackup = true
+	}
 
-	if *fallback {
-		svc.Debug("allow fallback, add system DNS to backup")
-		backup = append(backup, defaultResolver)
-	}
-	if len(backup) == 0 && len(primary) != 0 {
-		svc.Debug("no backup DNS found, add system DNS to backup")
-		backup = append(backup, defaultResolver)
-	}
-	if len(primary) == 0 {
+	if noPrimary {
 		svc.Debug("no primary DNS found, add system DNS to primary")
 		primary = append(primary, defaultResolver)
 	}
+	if noBackup && !noPrimary {
+		svc.Debug("no backup DNS found, add system DNS to backup")
+		backup = append(backup, defaultResolver)
+	}
+	if *fallback && !noPrimary && !noBackup {
+		svc.Debug("allow fallback, add system DNS to backup")
+		backup = append(backup, defaultResolver)
+	}
 
 	svc.Debug("init exclude list")
-	exclude := initExcludeList(*exclude, backup)
+	exclude := initExcludeList(*exclude, primary, backup)
 	for _, i := range exclude {
 		svc.Debug("exclude", "domain", i)
 	}
@@ -50,7 +57,7 @@ func run() error {
 
 	svc.Debug("init handle")
 	initHandle(primary, backup)
-	registerExclude(nil, exclude, backup)
+	registerExclude(nil, exclude, primary, backup)
 
 	svc.Printf("listen on: %s", addr)
 	return dns.ListenAndServe(addr, "udp", dns.DefaultServeMux)

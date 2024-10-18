@@ -53,6 +53,7 @@ func parseClients(s string) (clients []Client) {
 
 func (c *client) ExchangeContext(ctx context.Context, m *dns.Msg) (r *dns.Msg, err error) {
 	if c.proxy == nil {
+		svc.Debug("direct", "DNS", c.addr, "request", m.Question)
 		r, _, err = c.Client.ExchangeContext(ctx, m, c.addr)
 	} else {
 		network := c.Net
@@ -72,6 +73,7 @@ func (c *client) ExchangeContext(ctx context.Context, m *dns.Msg) (r *dns.Msg, e
 		if c.TLSConfig != nil {
 			conn = tls.Client(conn, c.TLSConfig)
 		}
+		svc.Debug("proxy", "DNS", c.addr, "request", m.Question)
 		r, _, err = c.ExchangeWithConnContext(ctx, r, &dns.Conn{Conn: conn})
 	}
 	return
@@ -88,6 +90,7 @@ type resolver struct {
 }
 
 func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
+	svc.Debug("system DNS", "request", m.Question)
 	m = m.Copy()
 	q := m.Question[0].Name
 	qType := m.Question[0].Qtype

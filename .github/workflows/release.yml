@@ -57,8 +57,8 @@ jobs:
         run: |
           go build -ldflags "-s -w"
           GOOS=windows go build -ldflags "-s -w"
-          tar cvzf release-linux.tar.gz proxydns config.ini.default
-          zip -9vr release-windows.zip proxydns.exe config.ini.default
+          tar cvzf release-linux.tar.gz dnshub config.ini.default
+          zip -9vr release-windows.zip dnshub.exe config.ini.default
           echo "date=$(TZ=PRC date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
 
       - name: Create Release

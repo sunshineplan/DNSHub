@@ -2,12 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 
 	"github.com/miekg/dns"
 	"github.com/sunshineplan/workers/executor"
 )
-
-var dnsExecutor = executor.New[Client, *Result](0)
 
 type Result struct {
 	msg  *dns.Msg
@@ -15,7 +14,11 @@ type Result struct {
 }
 
 func ExchangeContext(ctx context.Context, r *dns.Msg, clients []Client) (*Result, error) {
-	return dnsExecutor.ExecuteConcurrentArg(
+	n := len(clients)
+	if n == 0 {
+		return nil, errors.New("no DNS clients")
+	}
+	return executor.Executor[Client, *Result](n).ExecuteConcurrentArg(
 		clients,
 		func(c Client) (*Result, error) {
 			m, err := c.ExchangeContext(ctx, r)

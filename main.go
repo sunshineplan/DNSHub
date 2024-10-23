@@ -48,6 +48,8 @@ func main() {
 
 	if *logPath != "" {
 		svc.Logger = log.New(*logPath, "", log.LstdFlags)
+	} else if !*debug {
+		svc.Logger = log.New("", "", 0)
 	}
 	if *debug {
 		svc.Logger.SetLevel(slog.LevelDebug)

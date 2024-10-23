@@ -13,7 +13,7 @@ type Result struct {
 	name string
 }
 
-func ExchangeContext(ctx context.Context, r *dns.Msg, clients []Client) (*Result, error) {
+func ExchangeContext(ctx context.Context, r *dns.Msg, clients ...Client) (*Result, error) {
 	n := len(clients)
 	if n == 0 {
 		return nil, errors.New("no DNS clients")
@@ -40,14 +40,19 @@ func initHandle(primary, backup []Client) {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 		defer cancel()
-		m, err := ExchangeContext(ctx, r, primary)
+		m, err := ExchangeContext(ctx, r, primary...)
 		if err != nil {
 			svc.Error("request failed", "error", err)
 			if *fallback {
 				ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 				defer cancel()
-				if m, err = ExchangeContext(ctx, r, backup); err != nil {
-					svc.Error("fallback request failed", "error", err)
+				if m, err = ExchangeContext(ctx, r, backup...); err != nil {
+					svc.Error("fallback backup request failed", "error", err)
+					ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+					defer cancel()
+					if m, err = ExchangeContext(ctx, r, defaultResolver); err != nil {
+						svc.Error("fallback system request failed", "error", err)
+					}
 				}
 			}
 		}
@@ -77,14 +82,19 @@ func registerExclude(old, new []string, primary, backup []Client) {
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 			defer cancel()
-			m, err := ExchangeContext(ctx, r, backup)
+			m, err := ExchangeContext(ctx, r, backup...)
 			if err != nil {
 				svc.Error("request exclude failed", "error", err)
 				if *fallback {
 					ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 					defer cancel()
-					if m, err = ExchangeContext(ctx, r, primary); err != nil {
-						svc.Error("fallback request exclude failed", "error", err)
+					if m, err = ExchangeContext(ctx, r, primary...); err != nil {
+						svc.Error("fallback primary request exclude failed", "error", err)
+						ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+						defer cancel()
+						if m, err = ExchangeContext(ctx, r, defaultResolver); err != nil {
+							svc.Error("fallback system request exclude failed", "error", err)
+						}
 					}
 				}
 			}

@@ -33,16 +33,12 @@ func run() error {
 		noBackup = true
 	}
 
-	if noPrimary {
+	if noPrimary && !*fallback {
 		svc.Debug("no primary DNS found, add system DNS to primary")
 		primary = append(primary, defaultResolver)
 	}
-	if noBackup && !noPrimary {
+	if noBackup && !*fallback {
 		svc.Debug("no backup DNS found, add system DNS to backup")
-		backup = append(backup, defaultResolver)
-	}
-	if *fallback && !noPrimary && !noBackup {
-		svc.Debug("allow fallback, add system DNS to backup")
 		backup = append(backup, defaultResolver)
 	}
 

@@ -37,6 +37,7 @@ func initExcludeList(file string, primary, backup []Client) []string {
 					return
 				}
 				if event.Name == file {
+					svc.Println(file, "operation:", event.Op)
 					switch {
 					case event.Has(fsnotify.Create), event.Has(fsnotify.Write):
 						s, err := txt.ReadFile(file)

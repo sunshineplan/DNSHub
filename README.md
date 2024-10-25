@@ -81,8 +81,8 @@ This repo relies on:
 ### config.ini
 
 ```
-primary  = 1.1.1.1
-backup   = *8.8.8.8@tcp-tls
+primary  = 1.1.1.1@doh,1.0.0.1@tcp,8.8.4.4
+backup   = *8.8.8.8@dot
 proxy    = socks5://username:password@localhost:1080
 hosts    = /etc/hosts
 port     = 53

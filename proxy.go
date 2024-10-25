@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/proxy"
 )
 
-var proxyList []proxy.Dialer
+var proxyList []*url.URL
 
 func init() {
 	proxy.RegisterDialerType("http", httpproxy.FromURL)
@@ -27,17 +27,16 @@ func initProxy() {
 			svc.Error("failed to parse url", "error", err)
 			continue
 		}
-		p, err := proxy.FromURL(u, nil)
-		if err != nil {
+		if _, err := proxy.FromURL(u, nil); err != nil {
 			svc.Error("failed to parse proxy", "error", err)
 			continue
 		}
 		svc.Debug("proxy list", "index", len(proxyList)+1, "proxy", u)
-		proxyList = append(proxyList, p)
+		proxyList = append(proxyList, u)
 	}
 }
 
-func parseProxy(s string) (string, proxy.Dialer) {
+func parseProxy(s string) (string, *url.URL) {
 	var n int
 	for _, i := range s {
 		if i == '*' {
@@ -46,12 +45,12 @@ func parseProxy(s string) (string, proxy.Dialer) {
 			break
 		}
 	}
-	var p proxy.Dialer
+	var u *url.URL
 	if n > 0 && n <= len(proxyList) {
 		svc.Debug("use proxy", "proxy", n)
-		p = proxyList[n-1]
+		u = proxyList[n-1]
 	}
-	return strings.TrimLeft(s, "*"), p
+	return strings.TrimLeft(s, "*"), u
 }
 
 func dialContext(ctx context.Context, d proxy.Dialer, network, address string) (net.Conn, error) {

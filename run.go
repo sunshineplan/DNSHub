@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 
@@ -16,6 +18,10 @@ func run() error {
 	addr, err := testDNSPort(*port)
 	if err != nil {
 		return fmt.Errorf("failed to test dns port: %v", err)
+	}
+
+	if *debug {
+		go http.ListenAndServe("localhost:6060", nil)
 	}
 
 	svc.Debug("init proxy")

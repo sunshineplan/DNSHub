@@ -30,7 +30,7 @@ go build
 This repo relies on:
 
   * [github.com/miekg/dns](https://github.com/miekg/dns)
-  * [github.com/vharitonsky/iniflags](https://github.com/vharitonsky/iniflags)
+  * [github.com/fsnotify/fsnotify](https://github.com/fsnotify/fsnotify)
 
 ## Usage
 

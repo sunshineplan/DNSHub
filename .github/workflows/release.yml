@@ -56,8 +56,10 @@ jobs:
         id: build
         run: |
           go build -ldflags "-s -w"
-          GOOS=windows go build -ldflags "-s -w"
           tar cvzf release-linux.tar.gz dnshub config.ini.default
+          GOARCH=arm64 GOOS=darwin go build -ldflags "-s -w"
+          tar cvzf release-darwin.tar.gz dnshub config.ini.default
+          GOOS=windows go build -ldflags "-s -w"
           zip -9vr release-windows.zip dnshub.exe config.ini.default
           echo "date=$(TZ=PRC date +'%Y%m%d%H%M')" >> $GITHUB_OUTPUT
 

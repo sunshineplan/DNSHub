@@ -76,7 +76,7 @@ func registerExclude(old, new []string, primary, backup []Client) {
 		dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
 			svc.Debug("request exclude", "local", w.LocalAddr(), "remote", w.RemoteAddr(), "question", r.Question)
 			if m, ok := getCache(r); ok {
-				svc.Debug("cached", "result", m)
+				svc.Debug("cached", "question", r.Question, "result", m)
 				w.WriteMsg(m)
 				return
 			}
@@ -101,7 +101,7 @@ func registerExclude(old, new []string, primary, backup []Client) {
 			if err != nil {
 				return
 			}
-			svc.Debug("uncached", "DNS", m.name, "result", m.msg)
+			svc.Debug("uncached", "DNS", m.name, "question", r.Question, "result", m.msg)
 			setCache(r.Question, m.msg)
 			w.WriteMsg(m.msg)
 		})

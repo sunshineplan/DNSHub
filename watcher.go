@@ -47,11 +47,13 @@ func initExcludeList(file string, primary, backup []Client) []string {
 							registerExclude(exclude, s, primary, backup)
 							exclude = s
 						}
+						dnsCache.Clear()
 					case event.Has(fsnotify.Remove), event.Has(fsnotify.Rename):
 						for _, i := range exclude {
 							dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
 						}
 						exclude = nil
+						dnsCache.Clear()
 					}
 				}
 			}

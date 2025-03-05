@@ -1,6 +1,7 @@
 module dnshub
 
-go 1.23
+go 1.24
+
 require (
 	github.com/fsnotify/fsnotify v1.8.0
 	github.com/miekg/dns v1.1.63

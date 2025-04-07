@@ -3,7 +3,7 @@ module dnshub
 go 1.24
 
 require (
-	github.com/fsnotify/fsnotify v1.8.0
+	github.com/fsnotify/fsnotify v1.9.0
 	github.com/miekg/dns v1.1.64
 	github.com/sunshineplan/httpproxy v1.0.2
 	github.com/sunshineplan/service v1.0.21

@@ -8,7 +8,7 @@ import (
 	"github.com/sunshineplan/utils/cache"
 )
 
-var dnsCache = cache.New[string, *dns.Msg](true)
+var dnsCache = cache.NewWithRenew[string, *dns.Msg](true)
 
 func getCache(r *dns.Msg) (*dns.Msg, bool) {
 	if m, ok := dnsCache.Get(fmt.Sprint(r.Question)); ok {

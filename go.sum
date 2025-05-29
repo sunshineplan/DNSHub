@@ -8,8 +8,8 @@ github.com/sunshineplan/httpproxy v1.0.3 h1:SHO9J00B3izJ7aspdBNzNgBIThYm0Q3/GgIS
 github.com/sunshineplan/httpproxy v1.0.3/go.mod h1:HlC/bJB1mHwWpLeaSvpMfqCtUeJ74+Cecb4kn6yhAlY=
 github.com/sunshineplan/service v1.0.22 h1:MFXKIbcd3POiJb9KRI8oeybc2qN0p79vv9f+OL88EDU=
 github.com/sunshineplan/service v1.0.22/go.mod h1:JR7cTSNJVlajjXfXobA3Rr46z88M+6VK6coxq7JmyrY=
-github.com/sunshineplan/utils v0.1.74 h1:Zr5Si2lllOfDbxcSz4GpaSsF24CzlBFNrF/WGMc8lH8=
-github.com/sunshineplan/utils v0.1.74/go.mod h1:61jHA9jn2CVlZzt9LbPz+MpOEiR6Jy5SNHHEcc/KQNk=
+github.com/sunshineplan/utils v0.1.76 h1:FYdXgKi1S7yCnWRYnP7spmOakcFK3Fhkakf4G0kA2sg=
+github.com/sunshineplan/utils v0.1.76/go.mod h1:R7MInPRKnExzzNGJ9qY1W0+11P/3jc6IO5ICuGDPA1w=
 github.com/sunshineplan/workers v1.0.4 h1:S44VfWA7WEIfqpe3fzTvw1ir1VJ6vAI7ZqxDHxFpREQ=
 github.com/sunshineplan/workers v1.0.4/go.mod h1:BOqgiv5aLr9gruFCQOJgyk/94LOWjbuFNI7L7Pvnr70=
 golang.org/x/mod v0.24.0 h1:ZfthKaKaT4NrhGVZHO1/WDTwGES4De8KtWO0SIbNJMU=

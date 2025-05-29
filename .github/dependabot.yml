@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      sunshine:
+        patterns:
+          - "*sunshine*"
 
   - package-ecosystem: "github-actions"
     directory: "/"

@@ -7,7 +7,7 @@ require (
 	github.com/miekg/dns v1.1.68
 	github.com/sunshineplan/httpproxy v1.0.6
 	github.com/sunshineplan/service v1.0.22
-	github.com/sunshineplan/utils v0.1.79
+	github.com/sunshineplan/utils v0.1.80
 	github.com/sunshineplan/workers v1.0.6
 	golang.org/x/net v0.44.0
 )

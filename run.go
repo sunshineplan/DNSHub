@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/miekg/dns"
 	"github.com/sunshineplan/utils/retry"
@@ -104,7 +105,7 @@ func test() error {
 				}
 				rc <- r
 				return
-			}, 5, 1,
+			}, 5, 1*time.Second,
 		)
 	}
 	go func() {

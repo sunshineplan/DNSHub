@@ -9,7 +9,7 @@ require (
 	github.com/sunshineplan/service v1.0.25
 	github.com/sunshineplan/utils v0.1.83
 	github.com/sunshineplan/workers v1.0.6
-	golang.org/x/net v0.47.0
+	golang.org/x/net v0.48.0
 )
 
 require (
@@ -18,6 +18,6 @@ require (
 	github.com/sunshineplan/progressbar v1.0.1 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/tools v0.33.0 // indirect
 )

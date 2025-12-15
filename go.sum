@@ -8,12 +8,12 @@ github.com/mattn/go-runewidth v0.0.19 h1:v++JhqYnZuu5jSKrk9RbgF5v4CGUjqRfBm05byF
 github.com/mattn/go-runewidth v0.0.19/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
 github.com/miekg/dns v1.1.69 h1:Kb7Y/1Jo+SG+a2GtfoFUfDkG//csdRPwRLkCsxDG9Sc=
 github.com/miekg/dns v1.1.69/go.mod h1:7OyjD9nEba5OkqQ/hB4fy3PIoxafSZJtducccIelz3g=
-github.com/sunshineplan/httpproxy v1.0.6 h1:jZChKVKzNAA3Ib2E4Eghkt4NpWBUchEG+B4Ao8tYd/o=
-github.com/sunshineplan/httpproxy v1.0.6/go.mod h1:pz+kbO0qn1fGw3mLEidaO0Q/71yTFOEs7quofIPhyt8=
+github.com/sunshineplan/httpproxy v1.0.7 h1:lhrSuzJBcJ6FVMlVrQt4KYdZi9glbspsCEGgEZ55zPo=
+github.com/sunshineplan/httpproxy v1.0.7/go.mod h1:1G+4kYl2SX4RKd7AUa+7/gpWhqtYtefj0vfRIQUSu5w=
 github.com/sunshineplan/progressbar v1.0.1 h1:elihSbf9rtXthvbcJkveg40yu4LrpV3SKJBODcD1zPM=
 github.com/sunshineplan/progressbar v1.0.1/go.mod h1:jYAymBnBOVIQlJS6IuPzXpzmNaq3sLjdtAVmF74Ugak=
-github.com/sunshineplan/service v1.0.25 h1:uTZvyMyaAbJqRxss0Gavwp3xuIoclks5hMEGxFeh0G8=
-github.com/sunshineplan/service v1.0.25/go.mod h1:Z9zxpqIOJ0cyEZ3Md1uokAFxVxT8iYHCc5dkmUhi8po=
+github.com/sunshineplan/service v1.0.26 h1:JSxOhLMY8POAI9/2N59TNI9E0VN2dBgOu5Nyoub5u0s=
+github.com/sunshineplan/service v1.0.26/go.mod h1:Uk4jEz8d4WtMTeGOs5WxIG1JT+2fL5MF+Jnelp9ZrdQ=
 github.com/sunshineplan/utils v0.1.83 h1:fkS0caihlOWle6Klmhio3pVsr0e39HgQYrVBvC7JcuI=
 github.com/sunshineplan/utils v0.1.83/go.mod h1:yE18bZxiAbXACldV0BuTewbmj2y2fRBFrBUHRfD36ZA=
 github.com/sunshineplan/workers v1.0.6 h1:SA48R0uW/ep5SmMyq7uZq7UpSJ08o98x4cNiTYoW3rE=

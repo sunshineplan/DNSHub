@@ -5,8 +5,8 @@ go 1.25
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/miekg/dns v1.1.69
-	github.com/sunshineplan/httpproxy v1.0.6
-	github.com/sunshineplan/service v1.0.25
+	github.com/sunshineplan/httpproxy v1.0.7
+	github.com/sunshineplan/service v1.0.26
 	github.com/sunshineplan/utils v0.1.83
 	github.com/sunshineplan/workers v1.0.6
 	golang.org/x/net v0.48.0

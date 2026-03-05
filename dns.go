@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/sunshineplan/workers/executor"
 )
 
@@ -31,26 +32,28 @@ func ExchangeContext(ctx context.Context, r *dns.Msg, clients ...Client) (*Resul
 }
 
 func initHandle(primary, backup []Client) {
-	dns.DefaultServeMux.HandleFunc(".", func(w dns.ResponseWriter, r *dns.Msg) {
-		svc.Debug("request", "local", w.LocalAddr(), "remote", w.RemoteAddr(), "question", r.Question)
-		if m, ok := getCache(r); ok {
+	dns.DefaultServeMux.HandleFunc(".", func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
+		id := r.ID
+		svc.Debug("request", "local", w.LocalAddr(), "remote", w.RemoteAddr(), "id", id, "question", r.Question)
+		if m, ok := getCache(r.Question); ok {
 			svc.Debug("cached", "question", r.Question, "result", m)
-			w.WriteMsg(m)
+			m.ID = id
+			m.WriteTo(w)
 			return
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+		c, cancel := context.WithTimeout(ctx, *timeout)
 		defer cancel()
-		m, err := ExchangeContext(ctx, r, primary...)
+		m, err := ExchangeContext(c, r, primary...)
 		if err != nil {
 			svc.Error("request failed", "error", err)
 			if *fallback {
-				ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+				c, cancel := context.WithTimeout(ctx, *timeout)
 				defer cancel()
-				if m, err = ExchangeContext(ctx, r, backup...); err != nil {
+				if m, err = ExchangeContext(c, r, backup...); err != nil {
 					svc.Error("fallback backup request failed", "error", err)
-					ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+					c, cancel := context.WithTimeout(ctx, *timeout)
 					defer cancel()
-					if m, err = ExchangeContext(ctx, r, defaultResolver); err != nil {
+					if m, err = ExchangeContext(c, r, defaultResolver); err != nil {
 						svc.Error("fallback system request failed", "error", err)
 					}
 				}
@@ -61,7 +64,8 @@ func initHandle(primary, backup []Client) {
 		}
 		svc.Debug("uncached", "DNS", m.name, "question", r.Question, "result", m.msg)
 		setCache(r.Question, m.msg)
-		w.WriteMsg(m.msg)
+		m.msg.ID = id
+		m.msg.WriteTo(w)
 	})
 }
 
@@ -69,30 +73,32 @@ func registerExclude(old, new []string, primary, backup []Client) {
 	svc.Debug("register exclude handle")
 	for _, i := range old {
 		svc.Debug("remove", "pattern", i)
-		dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
+		dns.DefaultServeMux.HandleRemove(dnsutil.Fqdn(i))
 	}
 	for _, i := range new {
 		svc.Debug("add", "pattern", i)
-		dns.DefaultServeMux.HandleFunc(dns.Fqdn(i), func(w dns.ResponseWriter, r *dns.Msg) {
-			svc.Debug("request exclude", "local", w.LocalAddr(), "remote", w.RemoteAddr(), "question", r.Question)
-			if m, ok := getCache(r); ok {
+		dns.DefaultServeMux.HandleFunc(dnsutil.Fqdn(i), func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) {
+			id := r.ID
+			svc.Debug("request exclude", "local", w.LocalAddr(), "remote", w.RemoteAddr(), "id", id, "question", r.Question)
+			if m, ok := getCache(r.Question); ok {
 				svc.Debug("cached", "question", r.Question, "result", m)
-				w.WriteMsg(m)
+				m.ID = id
+				m.WriteTo(w)
 				return
 			}
-			ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+			c, cancel := context.WithTimeout(ctx, *timeout)
 			defer cancel()
-			m, err := ExchangeContext(ctx, r, backup...)
+			m, err := ExchangeContext(c, r, backup...)
 			if err != nil {
 				svc.Error("request exclude failed", "error", err)
 				if *fallback {
-					ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+					c, cancel := context.WithTimeout(ctx, *timeout)
 					defer cancel()
-					if m, err = ExchangeContext(ctx, r, primary...); err != nil {
+					if m, err = ExchangeContext(c, r, primary...); err != nil {
 						svc.Error("fallback primary request exclude failed", "error", err)
-						ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+						c, cancel := context.WithTimeout(ctx, *timeout)
 						defer cancel()
-						if m, err = ExchangeContext(ctx, r, defaultResolver); err != nil {
+						if m, err = ExchangeContext(c, r, defaultResolver); err != nil {
 							svc.Error("fallback system request exclude failed", "error", err)
 						}
 					}
@@ -103,7 +109,8 @@ func registerExclude(old, new []string, primary, backup []Client) {
 			}
 			svc.Debug("uncached", "DNS", m.name, "question", r.Question, "result", m.msg)
 			setCache(r.Question, m.msg)
-			w.WriteMsg(m.msg)
+			m.msg.ID = id
+			m.msg.WriteTo(w)
 		})
 	}
 }

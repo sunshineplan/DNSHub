@@ -3,8 +3,8 @@ module dnshub
 go 1.26
 
 require (
+	codeberg.org/miekg/dns v0.6.65
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/miekg/dns v1.1.72
 	github.com/sunshineplan/httpproxy v1.0.7
 	github.com/sunshineplan/service v1.0.26
 	github.com/sunshineplan/utils v0.1.84
@@ -16,8 +16,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/sunshineplan/progressbar v1.0.1 // indirect
-	golang.org/x/mod v0.31.0 // indirect
+	golang.org/x/crypto v0.48.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/tools v0.40.0 // indirect
 )

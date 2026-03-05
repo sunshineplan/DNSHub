@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -10,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
 	"github.com/sunshineplan/utils/retry"
 )
 
@@ -90,11 +91,13 @@ func test() error {
 
 	var query = func(q, expected string) error {
 		var r *dns.Msg
-		m := new(dns.Msg).SetQuestion(q, dns.TypeA)
+		m := dns.NewMsg(q, dns.TypeA)
 		svc.Print(m.Question)
 		return retry.Do(
 			func() (err error) {
-				r, err = dns.Exchange(m, addr)
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				r, err = dns.Exchange(ctx, m, "udp", addr)
 				if err != nil {
 					return
 				}

@@ -1,17 +1,18 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnshttp"
+	"codeberg.org/miekg/dns/dnsutil"
 	"golang.org/x/net/proxy"
 )
 
@@ -21,7 +22,7 @@ type Client interface {
 }
 
 func parseClients(s string) (clients []Client) {
-	for _, i := range strings.Split(s, ",") {
+	for i := range strings.SplitSeq(s, ",") {
 		if i = strings.TrimSpace(i); i == "" {
 			continue
 		}
@@ -30,61 +31,54 @@ func parseClients(s string) (clients []Client) {
 		if addr, ok := strings.CutSuffix(addr, "@doh"); ok {
 			svc.Debug("found DNS over HTTPS", "address", addr)
 			t := http.DefaultTransport.(*http.Transport).Clone()
-			t.Proxy = http.ProxyURL(proxyURL)
+			if proxyURL != nil {
+				t.Proxy = http.ProxyURL(proxyURL)
+			}
 			clients = append(clients, &doh{addr, &http.Client{Transport: t}})
 			continue
 		}
-		c := &client{addr, new(dns.Client), nil}
+		c := &client{"udp", addr, dns.NewClient(), nil}
 		if proxyURL != nil {
 			c.proxy, _ = proxy.FromURL(proxyURL, nil)
 		}
 		var ok bool
-		if c.addr, ok = strings.CutSuffix(c.addr, "@tcp-tls"); ok {
-			c.Net = "tcp-tls"
-			servername, _, _ := net.SplitHostPort(c.addr)
+		if c.address, ok = strings.CutSuffix(c.address, "@dot"); ok {
+			c.network = "tcp"
+			servername, _, _ := net.SplitHostPort(c.address)
 			c.TLSConfig = &tls.Config{ServerName: servername}
-		} else if c.addr, ok = strings.CutSuffix(c.addr, "@dot"); ok {
-			c.Net = "tcp-tls"
-			servername, _, _ := net.SplitHostPort(c.addr)
-			c.TLSConfig = &tls.Config{ServerName: servername}
-		} else if c.addr, ok = strings.CutSuffix(c.addr, "@tcp"); ok {
-			c.Net = "tcp"
+		} else if c.address, ok = strings.CutSuffix(c.address, "@tcp"); ok {
+			c.network = "tcp"
 		}
-		c.addr, _, _ = strings.Cut(c.addr, "@")
-		if _, _, err := net.SplitHostPort(c.addr); err != nil {
-			if c.Net == "tcp-tls" {
-				c.addr += ":853"
+		if _, _, err := net.SplitHostPort(c.address); err != nil {
+			if c.TLSConfig != nil {
+				c.address += ":853"
 			} else {
-				c.addr += ":53"
+				c.address += ":53"
 			}
 		}
-		svc.Debug("found DNS", "network", c.Net, "address", c.addr)
+		svc.Debug("found DNS", "network", c.network, "address", c.address)
 		clients = append(clients, c)
 	}
 	return
 }
 
 type client struct {
-	addr string
+	network string
+	address string
 	*dns.Client
 	proxy proxy.Dialer
 }
 
 func (c *client) ExchangeContext(ctx context.Context, m *dns.Msg) (r *dns.Msg, err error) {
 	if c.proxy == nil {
-		svc.Debug("direct", "DNS", c.addr, "request", m.Question)
-		r, _, err = c.Client.ExchangeContext(ctx, m, c.addr)
+		svc.Debug("direct", "DNS", c.address, "request", m.Question)
+		r, _, err = c.Client.Exchange(ctx, m, c.network, c.address)
 	} else {
-		network := c.Net
-		if network == "" {
-			network = "udp"
-		}
-		network = strings.TrimSuffix(network, "-tls")
 		var conn net.Conn
 		if d, ok := c.proxy.(proxy.ContextDialer); ok {
-			conn, err = d.DialContext(ctx, network, c.addr)
+			conn, err = d.DialContext(ctx, c.network, c.address)
 		} else {
-			conn, err = dialContext(ctx, c.proxy, network, c.addr)
+			conn, err = dialContext(ctx, c.proxy, c.network, c.address)
 		}
 		if err != nil {
 			return
@@ -92,14 +86,14 @@ func (c *client) ExchangeContext(ctx context.Context, m *dns.Msg) (r *dns.Msg, e
 		if c.TLSConfig != nil {
 			conn = tls.Client(conn, c.TLSConfig)
 		}
-		svc.Debug("proxy", "DNS", c.addr, "request", m.Question)
-		r, _, err = c.ExchangeWithConnContext(ctx, r, &dns.Conn{Conn: conn})
+		svc.Debug("proxy", "DNS", c.address, "request", m.Question)
+		r, _, err = c.ExchangeWithConn(ctx, r, conn)
 	}
 	return
 }
 
 func (c *client) Name() string {
-	return c.addr
+	return c.address
 }
 
 type doh struct {
@@ -108,23 +102,17 @@ type doh struct {
 }
 
 func (c *doh) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
-	b, err := m.Pack()
+	req, err := dnshttp.NewRequest(http.MethodPost, "https://"+c.server, m.Copy())
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://%s/dns-query", c.server), bytes.NewReader(b))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/dns-message")
-	resp, err := c.client.Do(req)
+	resp, err := c.client.Do(req.WithContext(ctx))
 	if err != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 		defer cancel()
-		req, _ := http.NewRequestWithContext(ctx, http.MethodPost, fmt.Sprintf("https://%s/dns-query", c.server), bytes.NewReader(b))
-		req.Header.Set("Content-Type", "application/dns-message")
+		req, _ := dnshttp.NewRequest(http.MethodPost, "https://"+c.server, m.Copy())
 		var e error
-		if resp, e = http.DefaultClient.Do(req); e != nil {
+		if resp, e = http.DefaultClient.Do(req.WithContext(ctx)); e != nil {
 			return nil, err
 		}
 	}
@@ -132,14 +120,11 @@ func (c *doh) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, error)
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.New(resp.Status)
 	}
-	b, err = io.ReadAll(resp.Body)
+	r, err := dnshttp.Response(resp)
 	if err != nil {
 		return nil, err
 	}
-	r := new(dns.Msg)
-	if err := r.Unpack(b); err != nil {
-		return nil, err
-	}
+	r.Data = nil
 	return r, nil
 }
 
@@ -156,8 +141,8 @@ type resolver struct {
 func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, error) {
 	svc.Debug("system DNS", "request", m.Question)
 	m = m.Copy()
-	q := m.Question[0].Name
-	qType := m.Question[0].Qtype
+	q := m.Question[0].Header().Name
+	qType := dns.RRToType(m.Question[0])
 	switch qType {
 	case dns.TypeA, dns.TypeAAAA:
 		ips, err := r.LookupIP(ctx, "ip", q)
@@ -176,7 +161,7 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 					s = fmt.Sprintf("%s AAAA %s", q, ip)
 				}
 			}
-			rr, err := dns.NewRR(s)
+			rr, err := dns.New(s)
 			if err != nil {
 				return nil, err
 			}
@@ -190,7 +175,7 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 			return nil, err
 		}
 		s := fmt.Sprintf("%s CNAME %s", q, cname)
-		rr, err := dns.NewRR(s)
+		rr, err := dns.New(s)
 		if err != nil {
 			return nil, err
 		}
@@ -202,7 +187,7 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 		}
 		for _, i := range txt {
 			s := fmt.Sprintf("%s TXT %q", q, i)
-			rr, err := dns.NewRR(s)
+			rr, err := dns.New(s)
 			if err != nil {
 				return nil, err
 			}
@@ -213,10 +198,10 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 		if err != nil {
 			return nil, err
 		}
+		reverse := dnsutil.ReverseAddr(netip.MustParseAddr(q))
 		for _, i := range addr {
-			reverse, _ := dns.ReverseAddr(q)
 			s := fmt.Sprintf("%s PTR %s", reverse, i)
-			rr, err := dns.NewRR(s)
+			rr, err := dns.New(s)
 			if err != nil {
 				return nil, err
 			}
@@ -229,7 +214,7 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 		}
 		for _, i := range mx {
 			s := fmt.Sprintf("%s MX %d %s", q, i.Pref, i.Host)
-			rr, err := dns.NewRR(s)
+			rr, err := dns.New(s)
 			if err != nil {
 				return nil, err
 			}
@@ -242,7 +227,7 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 		}
 		for _, i := range ns {
 			s := fmt.Sprintf("%s NS %s", q, i.Host)
-			rr, err := dns.NewRR(s)
+			rr, err := dns.New(s)
 			if err != nil {
 				return nil, err
 			}
@@ -255,7 +240,7 @@ func (r resolver) ExchangeContext(ctx context.Context, m *dns.Msg) (*dns.Msg, er
 		}
 		for _, i := range srv {
 			s := fmt.Sprintf("%s SRV %d %d %d %s", q, i.Priority, i.Weight, i.Port, i.Target)
-			rr, err := dns.NewRR(s)
+			rr, err := dns.New(s)
 			if err != nil {
 				return nil, err
 			}

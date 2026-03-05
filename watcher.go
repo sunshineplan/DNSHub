@@ -3,8 +3,9 @@ package main
 import (
 	"path/filepath"
 
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/fsnotify/fsnotify"
-	"github.com/miekg/dns"
 	"github.com/sunshineplan/utils/txt"
 )
 
@@ -50,7 +51,7 @@ func initExcludeList(file string, primary, backup []Client) []string {
 						dnsCache.Clear()
 					case event.Has(fsnotify.Remove), event.Has(fsnotify.Rename):
 						for _, i := range exclude {
-							dns.DefaultServeMux.HandleRemove(dns.Fqdn(i))
+							dns.DefaultServeMux.HandleRemove(dnsutil.Fqdn(i))
 						}
 						exclude = nil
 						dnsCache.Clear()

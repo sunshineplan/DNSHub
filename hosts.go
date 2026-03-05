@@ -5,7 +5,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnsutil"
 	"github.com/sunshineplan/utils/txt"
 )
 
@@ -59,11 +60,10 @@ func importHosts(s map[string][]net.IP, t uint16) {
 	}
 
 	for k, v := range s {
-		m := new(dns.Msg)
-		m.SetQuestion(dns.Fqdn(k), t)
+		m := dns.NewMsg(dnsutil.Fqdn(k), t)
 		for _, ip := range v {
-			s := fmt.Sprintf("%s %s %s", dns.Fqdn(k), qType, ip)
-			rr, err := dns.NewRR(s)
+			s := fmt.Sprintf("%s %s %s", dnsutil.Fqdn(k), qType, ip)
+			rr, err := dns.New(s)
 			if err != nil {
 				svc.Error("failed to create record", "error", err, "content", s)
 				continue

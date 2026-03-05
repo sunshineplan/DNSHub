@@ -4,29 +4,26 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/miekg/dns"
+	"codeberg.org/miekg/dns"
 	"github.com/sunshineplan/utils/cache"
 )
 
 var dnsCache = cache.NewWithRenew[string, *dns.Msg](true)
 
-func getCache(r *dns.Msg) (*dns.Msg, bool) {
-	if m, ok := dnsCache.Get(fmt.Sprint(r.Question)); ok {
-		m = m.Copy()
-		m.Id = r.Id
-		return m, true
+func getCache(key []dns.RR) (*dns.Msg, bool) {
+	if m, ok := dnsCache.Get(fmt.Sprint(key)); ok {
+		return m.Copy(), true
 	}
 	return nil, false
 }
 
-func setCache(key []dns.Question, r *dns.Msg) {
-	if len(r.Answer) == 0 {
-		dnsCache.Set(fmt.Sprint(key), r, 300*time.Second, nil)
-		return
+func setCache(key []dns.RR, r *dns.Msg) {
+	m := r.Copy()
+	m.ID = 0
+	m.Data = nil
+	lifecycle := 300 * time.Second
+	if len(r.Answer) > 0 {
+		lifecycle = time.Duration(max(r.Answer[0].Header().TTL, 300)) * time.Second
 	}
-	ttl := r.Answer[0].Header().Ttl
-	if ttl < 300 {
-		ttl = 300
-	}
-	dnsCache.Set(fmt.Sprint(key), r, time.Duration(ttl)*time.Second, nil)
+	dnsCache.Set(fmt.Sprint(key), m, lifecycle, nil)
 }

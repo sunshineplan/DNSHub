@@ -3,7 +3,7 @@ module dnshub
 go 1.26
 
 require (
-	codeberg.org/miekg/dns v0.6.66
+	codeberg.org/miekg/dns v0.6.70
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/sunshineplan/httpproxy v1.0.7
 	github.com/sunshineplan/service v1.0.26

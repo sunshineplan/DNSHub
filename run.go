@@ -2,24 +2,38 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"codeberg.org/miekg/dns"
+	"codeberg.org/miekg/dns/dnshttp"
+	"github.com/sunshineplan/utils/httpsvr"
 	"github.com/sunshineplan/utils/retry"
 )
 
-func run() error {
+func run() (err error) {
 	svc.Print("Start DNSHub")
-	addr, err := testDNSPort(*port)
-	if err != nil {
-		return fmt.Errorf("failed to test dns port: %v", err)
+	network := "tcp"
+	if *mode == "udp" {
+		network = "udp"
+	}
+	if *mode == "doh" && *unix != "" {
+		*port = 0
+	}
+	var addr string
+	if *port != 0 {
+		addr, err = testDNSPort(network, *port)
+		if err != nil {
+			return fmt.Errorf("failed to test dns port: %w", err)
+		}
 	}
 
 	if *debug {
@@ -63,12 +77,41 @@ func run() error {
 	initHandle(primary, backup)
 	registerExclude(nil, exclude, primary, backup)
 
-	svc.Printf("listen on: %s", addr)
-	return dns.ListenAndServe(addr, "udp", dns.DefaultServeMux)
+	server := dns.NewServer()
+	server.Addr = addr
+	server.Net = network
+	if *mode == "doh" {
+		svr := httpsvr.New()
+		svr.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			m, err := dnshttp.Request(r)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			hw := dnshttp.NewResponseWriter(w, r, r.Context().Value(http.LocalAddrContextKey).(net.Addr))
+			dns.DefaultServeMux.ServeDNS(r.Context(), hw, m)
+		})
+		if *unix != "" {
+			svr.Unix = *unix
+			return svr.Run()
+		}
+		if *cert != "" && *privkey != "" {
+			svr.Port = strconv.Itoa(*port)
+			svr.TLSConfig = &tls.Config{GetCertificate: getCertificate}
+			return svr.Serve(true)
+		}
+		return errors.New("DoH mode needs Unix or Certificate to be set.")
+	} else {
+		svc.Printf("listen on: %s %s", network, addr)
+		if *mode == "dot" {
+			server.TLSConfig = &tls.Config{GetCertificate: getCertificate}
+		}
+		return server.ListenAndServe()
+	}
 }
 
 func test() error {
-	addr, err := testDNSPort(0)
+	addr, err := testDNSPort("udp", 0)
 	if err != nil {
 		return fmt.Errorf("failed to get test address: %v", err)
 	}
@@ -136,11 +179,11 @@ func test() error {
 	}
 }
 
-func testDNSPort(port int) (string, error) {
-	conn, err := net.ListenUDP("udp", &net.UDPAddr{Port: port})
+func testDNSPort(network string, port int) (string, error) {
+	conn, err := net.Listen(network, fmt.Sprintf(":%d", port))
 	if err != nil {
 		return "", err
 	}
 	conn.Close()
-	return conn.LocalAddr().String(), nil
+	return conn.Addr().String(), nil
 }

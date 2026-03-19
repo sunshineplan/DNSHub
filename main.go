@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sunshineplan/service"
@@ -19,7 +20,11 @@ var (
 	backup   = flag.String("backup", "", `List of backup DNS`)
 	exclude  = flag.String("exclude", "", "Exclusion list `file` which only use backup DNS")
 	hosts    = flag.String("hosts", "", "Hosts `file`")
-	port     = flag.Int("port", 53, "DNS server port (default 53)")
+	mode     = flag.String("mode", "UDP", "DNS mode (UDP, TCP, DoT, DoH)")
+	port     = flag.Int("port", 0, "DNS server port (default: UDP&TCP-53, DoT-853, DoH-443)")
+	cert     = flag.String("cert", "", "Path to certificate file, for DoT or DoH mode")
+	privkey  = flag.String("privkey", "", "Path to private key file, for DoT or DoH mode")
+	unix     = flag.String("unix", "", "Path to Unix socket, only for DoH mode")
 	dnsProxy = flag.String("proxy", "", "List of proxies for DNS")
 	fallback = flag.Bool("fallback", false, "Enable fallback")
 	timeout  = flag.Duration("timeout", 5*time.Second, "Query timeout")
@@ -56,6 +61,18 @@ func main() {
 	}
 	if *exclude == "" {
 		*exclude = filepath.Join(filepath.Dir(self), "exclude.list")
+	}
+	if *mode = strings.ToLower(*mode); *port == 0 {
+		switch *mode {
+		case "udp", "tcp":
+			*port = 53
+		case "dot":
+			*port = 853
+		case "doh":
+			*port = 443
+		default:
+			svc.Fatalln("Invalid mode:", *mode)
+		}
 	}
 
 	if err := svc.ParseAndRun(flag.Args()); err != nil {

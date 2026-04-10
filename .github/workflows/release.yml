@@ -24,7 +24,7 @@ jobs:
           go-version: stable
 
       - name: Delete Old Release
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             let response

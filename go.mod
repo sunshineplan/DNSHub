@@ -7,7 +7,7 @@ require (
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/sunshineplan/httpproxy v1.0.7
 	github.com/sunshineplan/service v1.0.26
-	github.com/sunshineplan/utils v0.1.84
+	github.com/sunshineplan/utils v0.1.85
 	github.com/sunshineplan/workers v1.0.6
 	golang.org/x/net v0.56.0
 )

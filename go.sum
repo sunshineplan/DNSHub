@@ -1,5 +1,5 @@
-codeberg.org/miekg/dns v0.6.110 h1:hBbR0EqAThtoEpowZ9LgYnw47K5hG88ETRD4po14ayY=
-codeberg.org/miekg/dns v0.6.110/go.mod h1:vbidSyLJl5JcDUL2LrXCUjRYSFa5tJweseQox0GOrTk=
+codeberg.org/miekg/dns v0.6.114 h1:SODo7jw1wVHHferv/NZMmW98iPpjpNcAEmT4Nh38aMY=
+codeberg.org/miekg/dns v0.6.114/go.mod h1:vbidSyLJl5JcDUL2LrXCUjRYSFa5tJweseQox0GOrTk=
 github.com/clipperhouse/uax29/v2 v2.2.0 h1:ChwIKnQN3kcZteTXMgb1wztSgaU+ZemkgWdohwgs8tY=
 github.com/clipperhouse/uax29/v2 v2.2.0/go.mod h1:EFJ2TJMRUaplDxHKj1qAEhCtQPW2tJSwu5BF98AuoVM=
 github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx59Ho=

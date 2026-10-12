@@ -9,7 +9,7 @@ require (
 	github.com/sunshineplan/service v1.0.26
 	github.com/sunshineplan/utils v0.1.86
 	github.com/sunshineplan/workers v1.0.6
-	golang.org/x/net v0.59.0
+	golang.org/x/net v0.60.0
 )
 
 require (

@@ -9,14 +9,14 @@ require (
 	github.com/sunshineplan/service v1.0.26
 	github.com/sunshineplan/utils v0.1.86
 	github.com/sunshineplan/workers v1.0.6
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 )
 
 require (
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.19 // indirect
 	github.com/sunshineplan/progressbar v1.0.1 // indirect
-	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/crypto v0.59.0 // indirect
 	golang.org/x/sync v0.24.0 // indirect
-	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
 )
